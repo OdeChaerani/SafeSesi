@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import time
 from typing import Any
 import asyncpg
 from core.config import get_settings
@@ -17,6 +16,8 @@ from services.simulation.intent import classify_greeting, generate_greeting_resp
 from services.simulation.notes_updater import update_topic_notes_llm
 from services.simulation.responder import generate_client_response_llm
 from services.simulation.state_updater import update_client_state_llm
+from services.simulation.timing import TurnTimings
+from services.simulation.turn_lock import DbTurnLock, NullTurnLock, spawn_background
 
 logger = logging.getLogger("safesesi.simulation.orchestrator")
 
@@ -33,140 +34,19 @@ async def get_session_lock(session_id: int) -> asyncio.Lock:
         return _SESSION_LOCKS[session_id]
 
 
-async def process_turn(
+async def _save_turn_pair(
     conn: asyncpg.Connection,
-    session: dict[str, Any],
+    session_id: int,
     counselor_utterance: str,
-    start_ms: int = 0,
-    end_ms: int = 0,
-) -> TurnResponse:
-    """Mengorkestrasi satu siklus giliran dialog konseling:
-
-    1. Membaca konteks sesi, snapshot skenario, state klien terkini, dan topik.
-    2. Deteksi shortcut sapaan (greeting bypass).
-    3. Peran A: State Updater (evaluasi respons konselor -> ClientState).
-    4. Peran B: Client Responder (pembatasan kode hidden facts -> ucapan klien).
-    5. Persistensi atomik giliran konselor, giliran klien, dan client_state_log.
-    6. Peran C: Notes Updater (inline / background).
-    7. Mengembalikan TurnResponse tanpa membocorkan internal state (kecuali debug).
-    """
-    t_turn_start = time.perf_counter()
-    session_id = session["id"]
-    settings = get_settings()
-
-    # 1. Ekstraksi Snapshot Skenario yang Dibekukan
-    t_fetch_start = time.perf_counter()
-    snapshot = session.get("scenario_snapshot", {})
-    if isinstance(snapshot, str):
-        snapshot = json.loads(snapshot)
-
-    persona = snapshot.get("persona", {})
-    case_data = snapshot.get("case", {})
-    initial_state = snapshot.get("initial_state", {})
-    hidden_facts = snapshot.get("hidden_facts", [])
-
-    # 2. Ambil Kondisi Klien Terkini dan Catatan Topik
-    latest_state = await get_latest_client_state(conn, session_id)
-    if not latest_state:
-        latest_state = initial_state
-
-    latest_topic_notes = await get_latest_topic_notes(conn, session_id)
-
-    # 3. Ambil Riwayat Percakapan (Sesi Aktif + Parent Sesi jika Mode Continue)
-    current_turns = await get_session_turns(conn, session_id)
-    parent_session_id = session.get("parent_session_id")
-    if parent_session_id:
-        parent_turns = await get_session_turns(conn, parent_session_id)
-        transcript_history = parent_turns + current_turns
-    else:
-        transcript_history = current_turns
-
-    t_fetch = time.perf_counter() - t_fetch_start
-
-    # 4. Shortcut Sapaan (Greeting Bypass - hanya di turn pertama jika diaktifkan)
-    if (
-        settings.GREETING_SHORTCUT_ENABLED
-        and not transcript_history
-        and classify_greeting(counselor_utterance)
-    ):
-        client_reply = generate_greeting_response(persona.get("name", "Klien"))
-
-        async with conn.transaction():
-            c_turn_no = await get_next_turn_no(conn, session_id)
-            c_turn_id = await save_turn(
-                conn,
-                session_id=session_id,
-                turn_no=c_turn_no,
-                speaker="counselor",
-                content=counselor_utterance,
-                start_ms=start_ms,
-                end_ms=end_ms,
-            )
-            cl_turn_no = c_turn_no + 1
-            cl_turn_id = await save_turn(
-                conn,
-                session_id=session_id,
-                turn_no=cl_turn_no,
-                speaker="client",
-                content=client_reply,
-                start_ms=0,
-                end_ms=0,
-            )
-            # Salin state sebelumnya untuk giliran klien sapaan
-            await save_client_state(
-                conn, session_id=session_id, turn_id=cl_turn_id, state=latest_state
-            )
-
-        t_total = time.perf_counter() - t_turn_start
-        logger.info(
-            "⏱️ [Sesi #%s Turn #%d] Total: %.2fs (Shortcut Sapaan) -> 🗣️ Klien: \"%s\"",
-            session_id,
-            cl_turn_no,
-            t_total,
-            client_reply,
-        )
-
-        internal_st = (
-            ClientState.model_validate(latest_state)
-            if settings.DEBUG_INCLUDE_INTERNAL
-            else None
-        )
-        return TurnResponse(
-            turn_no=cl_turn_no,
-            content=client_reply,
-            internal_state=internal_st,
-        )
-
-    # 5. Pemrosesan Substantif: Peran A (State Updater)
-    t_state_start = time.perf_counter()
-    new_state = await update_client_state_llm(
-        counselor_utterance=counselor_utterance,
-        current_state=latest_state,
-        persona=persona,
-        case_data=case_data,
-        transcript_history=transcript_history,
-        topic_notes=latest_topic_notes,
-    )
-    t_state = time.perf_counter() - t_state_start
-
-    # 6. Pemrosesan Substantif: Peran B (Client Responder)
-    t_resp_start = time.perf_counter()
-    client_reply = await generate_client_response_llm(
-        persona=persona,
-        case_data=case_data,
-        new_state=new_state,
-        topic_notes=latest_topic_notes,
-        transcript_history=transcript_history,
-        counselor_utterance=counselor_utterance,
-        hidden_facts=hidden_facts,
-    )
-    t_resp = time.perf_counter() - t_resp_start
-
-    # 7. Persistensi Atomik Transaksi Turn Konselor + Turn Klien + State Klien
-    t_db_start = time.perf_counter()
+    client_reply: str,
+    state: dict[str, Any],
+    start_ms: int,
+    end_ms: int,
+) -> tuple[int, int]:
+    """Persistensi atomik: turn konselor + turn klien + client_state_log. Mengembalikan (turn_no, turn_id) klien."""
     async with conn.transaction():
         c_turn_no = await get_next_turn_no(conn, session_id)
-        c_turn_id = await save_turn(
+        await save_turn(
             conn,
             session_id=session_id,
             turn_no=c_turn_no,
@@ -185,63 +65,269 @@ async def process_turn(
             start_ms=0,
             end_ms=0,
         )
-        await save_client_state(
-            conn,
-            session_id=session_id,
-            turn_id=cl_turn_id,
-            state=new_state.model_dump(),
-        )
-    t_db = time.perf_counter() - t_db_start
+        await save_client_state(conn, session_id=session_id, turn_id=cl_turn_id, state=state)
+    return cl_turn_no, cl_turn_id
 
-    # 8. Peran C: Notes Updater (Pembaruan Catatan Perkembangan Topik)
-    t_notes = 0.0
-    if settings.NOTES_UPDATE_MODE == "inline":
-        t_notes_start = time.perf_counter()
-        try:
-            updated_topics = await update_topic_notes_llm(
-                current_topic_notes=latest_topic_notes,
-                counselor_utterance=counselor_utterance,
-                actual_client_response=client_reply,
-            )
-            # Petakan topic_name ke session_topic_id
-            name_to_id = {
-                t["topic_name"].strip().lower(): t["session_topic_id"]
-                for t in latest_topic_notes
-            }
-            for ut in updated_topics:
-                matched_id = name_to_id.get(ut.topic_name.strip().lower())
-                if matched_id:
-                    await save_topic_note(
-                        conn,
-                        session_topic_id=matched_id,
-                        turn_id=cl_turn_id,
-                        description=ut.description,
-                    )
-            t_notes = time.perf_counter() - t_notes_start
-        except Exception as exc:
-            t_notes = time.perf_counter() - t_notes_start
-            logger.warning("Pembaruan catatan topik Peran C inline gagal (non-fatal): %s", exc)
 
-    t_total = time.perf_counter() - t_turn_start
-    reply_snippet = client_reply.replace("\n", " ")
-    if len(reply_snippet) > 80:
-        reply_snippet = reply_snippet[:80] + "..."
-
-    logger.info(
-        "⏱️ [Sesi #%s Turn #%d] Total: %.2fs (State: %.2fs | Klien: %.2fs | Notes: %.2fs | DB: %dms) -> 🗣️ Klien: \"%s\"",
-        session_id,
-        cl_turn_no,
-        t_total,
-        t_state,
-        t_resp,
-        t_notes,
-        int((t_fetch + t_db) * 1000),
-        reply_snippet,
+async def _run_notes_updater(
+    conn: asyncpg.Connection,
+    latest_topic_notes: list[dict[str, Any]],
+    counselor_utterance: str,
+    client_reply: str,
+    client_turn_id: int,
+) -> None:
+    """Peran C: memperbarui catatan topik dan menyimpannya ke topic_notes_log."""
+    updated_topics = await update_topic_notes_llm(
+        current_topic_notes=latest_topic_notes,
+        counselor_utterance=counselor_utterance,
+        actual_client_response=client_reply,
     )
+    name_to_id = {
+        t["topic_name"].strip().lower(): t["session_topic_id"] for t in latest_topic_notes
+    }
+    for ut in updated_topics:
+        matched_id = name_to_id.get(ut.topic_name.strip().lower())
+        if matched_id:
+            await save_topic_note(
+                conn,
+                session_topic_id=matched_id,
+                turn_id=client_turn_id,
+                description=ut.description,
+            )
+
+
+async def _notes_in_background(
+    turn_lock: DbTurnLock | NullTurnLock,
+    timings: TurnTimings,
+    session_id: int,
+    turn_no: int,
+    latest_topic_notes: list[dict[str, Any]],
+    counselor_utterance: str,
+    client_reply: str,
+    client_turn_id: int,
+    timeout_s: float,
+) -> None:
+    """Peran C setelah respons terkirim. Catatan ditulis di transaksi lock, lalu lock dilepas.
+
+    Gagal/timeout tidak memengaruhi respons: error dicatat, transaksi di-rollback (catatan
+    giliran ini tidak tersimpan sebagian), dan lock tetap dilepas agar giliran berikutnya jalan.
+    """
+    status = "ok"
+    try:
+        with timings.stage("role_c"):
+            await asyncio.wait_for(
+                _run_notes_updater(
+                    turn_lock.conn,
+                    latest_topic_notes,
+                    counselor_utterance,
+                    client_reply,
+                    client_turn_id,
+                ),
+                timeout=timeout_s,
+            )
+    except Exception as exc:
+        status = "timeout" if isinstance(exc, asyncio.TimeoutError) else "error"
+        logger.error(
+            "Peran C background gagal (sesi #%s turn #%s, %s): %r",
+            session_id,
+            turn_no,
+            status,
+            exc,
+        )
+    finally:
+        try:
+            await turn_lock.release(commit=status == "ok")
+        except Exception:
+            logger.exception("Gagal melepas lock giliran sesi #%s", session_id)
+        timings.emit(
+            session_id,
+            turn_no,
+            path="substantive",
+            notes_mode="background",
+            notes_status=status,
+        )
+
+
+async def process_turn(
+    conn: asyncpg.Connection,
+    session: dict[str, Any],
+    counselor_utterance: str,
+    start_ms: int = 0,
+    end_ms: int = 0,
+    turn_lock: DbTurnLock | NullTurnLock | None = None,
+    lock_wait_ms: float | None = None,
+) -> TurnResponse:
+    """Memproses satu giliran. Mengambil alih turn_lock: lock selalu dilepas di sini,
+    atau diserahkan ke tugas Peran C background yang melepasnya setelah selesai.
+    lock_wait_ms: lama menunggu lock giliran sebelumnya (dicatat di log timing).
+    """
+    lock = turn_lock or NullTurnLock()
+    handed_off = False
+    succeeded = False
+    try:
+        response, handed_off = await _process_turn_locked(
+            conn, session, counselor_utterance, start_ms, end_ms, lock, lock_wait_ms
+        )
+        succeeded = True
+        return response
+    finally:
+        if not handed_off:
+            await lock.release(commit=succeeded)
+
+
+async def _process_turn_locked(
+    conn: asyncpg.Connection,
+    session: dict[str, Any],
+    counselor_utterance: str,
+    start_ms: int,
+    end_ms: int,
+    turn_lock: DbTurnLock | NullTurnLock,
+    lock_wait_ms: float | None = None,
+) -> tuple[TurnResponse, bool]:
+    """Mengorkestrasi satu siklus giliran dialog konseling:
+
+    1. Membaca konteks sesi, snapshot skenario, state klien terkini, dan topik.
+    2. Deteksi shortcut sapaan (greeting bypass).
+    3. Peran A: State Updater (evaluasi respons konselor -> ClientState).
+    4. Peran B: Client Responder (pembatasan kode hidden facts -> ucapan klien).
+    5. Persistensi atomik giliran konselor, giliran klien, dan client_state_log.
+    6. Peran C: Notes Updater (background setelah respons, atau inline).
+    7. Mengembalikan TurnResponse tanpa membocorkan internal state (kecuali debug).
+
+    Dipanggil sambil memegang lock giliran sesi. Mengembalikan (respons, lock_diserahkan).
+    Durasi tiap tahap dicatat sebagai satu baris JSON per giliran (logger safesesi.timing).
+    """
+    timings = TurnTimings()
+    if lock_wait_ms is not None:
+        timings.stages["lock_wait"] = lock_wait_ms
+    session_id = session["id"]
+    settings = get_settings()
+
+    # 1-3. Muat snapshot, state terkini, catatan topik, dan riwayat percakapan
+    with timings.stage("load"):
+        snapshot = session.get("scenario_snapshot", {})
+        if isinstance(snapshot, str):
+            snapshot = json.loads(snapshot)
+
+        persona = snapshot.get("persona", {})
+        case_data = snapshot.get("case", {})
+        initial_state = snapshot.get("initial_state", {})
+        hidden_facts = snapshot.get("hidden_facts", [])
+
+        latest_state = await get_latest_client_state(conn, session_id)
+        if not latest_state:
+            latest_state = initial_state
+
+        latest_topic_notes = await get_latest_topic_notes(conn, session_id)
+
+        # Riwayat sesi aktif + sesi induk jika mode continue
+        current_turns = await get_session_turns(conn, session_id)
+        parent_session_id = session.get("parent_session_id")
+        if parent_session_id:
+            parent_turns = await get_session_turns(conn, parent_session_id)
+            transcript_history = parent_turns + current_turns
+        else:
+            transcript_history = current_turns
+
+    # 4. Shortcut Sapaan (Greeting Bypass - hanya di turn pertama jika diaktifkan)
+    if (
+        settings.GREETING_SHORTCUT_ENABLED
+        and not transcript_history
+        and classify_greeting(counselor_utterance)
+    ):
+        client_reply = generate_greeting_response(persona.get("name", "Klien"))
+        with timings.stage("save"):
+            # Salin state sebelumnya untuk giliran klien sapaan
+            cl_turn_no, _ = await _save_turn_pair(
+                conn, session_id, counselor_utterance, client_reply, latest_state, start_ms, end_ms
+            )
+        timings.emit(session_id, cl_turn_no, path="greeting_shortcut")
+
+        internal_st = (
+            ClientState.model_validate(latest_state)
+            if settings.DEBUG_INCLUDE_INTERNAL
+            else None
+        )
+        response = TurnResponse(turn_no=cl_turn_no, content=client_reply, internal_state=internal_st)
+        return response, False
+
+    # 5. Peran A (State Updater)
+    with timings.stage("role_a"):
+        new_state = await update_client_state_llm(
+            counselor_utterance=counselor_utterance,
+            current_state=latest_state,
+            persona=persona,
+            case_data=case_data,
+            transcript_history=transcript_history,
+            topic_notes=latest_topic_notes,
+        )
+
+    # 6. Peran B (Client Responder)
+    with timings.stage("role_b"):
+        client_reply = await generate_client_response_llm(
+            persona=persona,
+            case_data=case_data,
+            new_state=new_state,
+            topic_notes=latest_topic_notes,
+            transcript_history=transcript_history,
+            counselor_utterance=counselor_utterance,
+            hidden_facts=hidden_facts,
+        )
+
+    # 7. Persistensi atomik turn konselor + turn klien + state klien
+    with timings.stage("save"):
+        cl_turn_no, cl_turn_id = await _save_turn_pair(
+            conn,
+            session_id,
+            counselor_utterance,
+            client_reply,
+            new_state.model_dump(),
+            start_ms,
+            end_ms,
+        )
 
     internal_st = new_state if settings.DEBUG_INCLUDE_INTERNAL else None
-    return TurnResponse(
-        turn_no=cl_turn_no,
-        content=client_reply,
-        internal_state=internal_st,
+    response = TurnResponse(turn_no=cl_turn_no, content=client_reply, internal_state=internal_st)
+
+    # 8. Peran C (Notes Updater). Background hanya jika ada koneksi lock khusus: tugas
+    # background tidak boleh memakai koneksi request yang dikembalikan ke pool setelah respons.
+    if settings.NOTES_UPDATE_MODE == "background" and turn_lock.conn is not None:
+        timings.mark_response_ready()
+        spawn_background(
+            _notes_in_background(
+                turn_lock,
+                timings,
+                session_id,
+                cl_turn_no,
+                latest_topic_notes,
+                counselor_utterance,
+                client_reply,
+                cl_turn_id,
+                settings.NOTES_TIMEOUT_S,
+            ),
+            name=f"notes-session-{session_id}-turn-{cl_turn_no}",
+        )
+        return response, True
+
+    notes_status = "ok"
+    with timings.stage("role_c"):
+        try:
+            await _run_notes_updater(
+                turn_lock.conn or conn,
+                latest_topic_notes,
+                counselor_utterance,
+                client_reply,
+                cl_turn_id,
+            )
+        except Exception as exc:
+            notes_status = "error"
+            logger.warning("Pembaruan catatan topik Peran C inline gagal (non-fatal): %s", exc)
+
+    timings.emit(
+        session_id,
+        cl_turn_no,
+        path="substantive",
+        notes_mode="inline",
+        notes_status=notes_status,
     )
+    return response, False

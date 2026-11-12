@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from typing import Any
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -29,6 +30,12 @@ from schemas.session import (
     TurnResponse,
 )
 from services.simulation.orchestrator import get_session_lock, process_turn
+from services.simulation.turn_lock import (
+    DbTurnLock,
+    NullTurnLock,
+    TurnLockTimeout,
+    acquire_turn_lock,
+)
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -54,6 +61,16 @@ async def topics_for_viewer(
 ) -> list[dict[str, Any]]:
     notes = await get_latest_topic_notes(conn, session_id)
     return notes if is_reviewer(user) else student_visible_topics(notes)
+
+
+async def _acquire_turn_lock_or_409(session_id: int) -> DbTurnLock | NullTurnLock:
+    try:
+        return await acquire_turn_lock(session_id)
+    except TurnLockTimeout as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Giliran sebelumnya masih diproses. Silakan coba lagi sebentar lagi.",
+        ) from exc
 
 
 def to_public_session(session: dict[str, Any]) -> dict[str, Any]:
@@ -251,23 +268,35 @@ async def send_counselor_turn(
             detail="Sesi latihan ini sudah selesai dan tidak dapat menerima giliran percakapan baru.",
         )
 
+    # asyncio.Lock: antrean murah di dalam satu proses (tanpa memakai koneksi DB tambahan).
+    # Lock DB (advisory): menunggu giliran/Peran C sebelumnya, juga dari worker lain.
     lock = await get_session_lock(session_id)
     async with lock:
-        # Validasi ulang status sesi setelah memperoleh lock
-        current_session = await get_session_by_id(conn, session_id)
-        if current_session and current_session["status"] == "completed":
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Sesi latihan ini sudah selesai dan tidak dapat menerima giliran percakapan baru.",
-            )
+        t_lock = time.perf_counter()
+        turn_lock = await _acquire_turn_lock_or_409(session_id)
+        lock_wait_ms = round((time.perf_counter() - t_lock) * 1000, 1)
+        try:
+            # Validasi ulang status sesi setelah memperoleh lock
+            current_session = await get_session_by_id(conn, session_id)
+            if current_session and current_session["status"] == "completed":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Sesi latihan ini sudah selesai dan tidak dapat menerima giliran percakapan baru.",
+                )
+        except BaseException:
+            await turn_lock.release(commit=False)
+            raise
 
         try:
+            # process_turn mengambil alih turn_lock (melepas atau menyerahkannya ke Peran C)
             return await process_turn(
                 conn=conn,
                 session=session,
                 counselor_utterance=payload.content,
                 start_ms=payload.start_ms,
                 end_ms=payload.end_ms,
+                turn_lock=turn_lock,
+                lock_wait_ms=lock_wait_ms,
             )
         except LLMServiceError as exc:
             raise HTTPException(
@@ -300,8 +329,23 @@ async def end_active_session(
             "ended_at": session["ended_at"] or session["started_at"],
         }
 
-    updated = await end_session(conn, session_id)
+    # Tunggu Peran C terakhir: catatan topik akhir dipakai sesi lanjutan
+    turn_lock = await _acquire_turn_lock_or_409(session_id)
+    try:
+        updated = await end_session(conn, session_id)
+    finally:
+        await turn_lock.release()
+
     if not updated:
+        # Bisa terjadi jika sesi diakhiri request lain saat menunggu lock
+        current = await get_session_by_id(conn, session_id)
+        if current and current["status"] == "completed":
+            return {
+                "id": current["id"],
+                "status": current["status"],
+                "duration_seconds": current["duration_seconds"],
+                "ended_at": current["ended_at"] or current["started_at"],
+            }
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Gagal memperbarui status sesi menjadi selesai.",

@@ -12,6 +12,8 @@ from fastapi.responses import JSONResponse
 from api import api_router
 from core.config import get_settings
 from core.errors import SafeSesiError
+from services.llm.gemini_client import validate_llm_configs
+from services.simulation.turn_lock import configure_turn_lock, drain_background_tasks
 
 logging.basicConfig(
     level=logging.INFO,
@@ -26,6 +28,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Lifespan context manager untuk mengelola asyncpg connection pool."""
     settings = get_settings()
     pool: asyncpg.Pool | None = None
+
+    # Validasi model + thinking budget per peran sebelum resource lain dibuat.
+    # LLMConfigRejected dibiarkan lolos: startup gagal dengan pesan peran/model/budget.
+    if settings.GEMINI_VALIDATE_ON_STARTUP and settings.GEMINI_API_KEY:
+        await validate_llm_configs(settings)
+    elif settings.GEMINI_VALIDATE_ON_STARTUP:
+        logger.warning("GEMINI_API_KEY kosong; validasi konfigurasi LLM dilewati.")
 
     if settings.DATABASE_URL:
         try:
@@ -49,7 +58,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info("DATABASE_URL kosong. db_pool disetel ke None.")
         app.state.db_pool = None
 
+    configure_turn_lock(app.state.db_pool, timeout_s=settings.TURN_LOCK_TIMEOUT_S)
+
     yield
+
+    # Tunggu Peran C background agar catatan topik akhir tidak hilang saat shutdown
+    await drain_background_tasks(timeout_s=settings.NOTES_TIMEOUT_S + 5)
+    configure_turn_lock(None)
 
     if pool is not None:
         logger.info("Menutup connection pool asyncpg...")

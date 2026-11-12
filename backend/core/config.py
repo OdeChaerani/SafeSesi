@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -15,11 +15,24 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = ""
     GEMINI_API_KEY: str = ""
+    # Model dan thinking budget per peran (A = state, B = responder, C = notes).
+    # Thinking budget: 0 = thinking dimatikan; kosong/"none" = thinking_config tidak dikirim
+    # (default model). Beberapa model (mis. gemini-3.5-flash-lite) menolak budget 0.
     GEMINI_MODEL_STATE: str = "gemini-3.8-flash"
     GEMINI_MODEL_RESPONDER: str = "gemini-3.8-flash"
-    GEMINI_MODEL_NOTES: str = "gemini-3.8-flash"
+    GEMINI_MODEL_NOTES: str = "gemini-3.5-flash-lite"
+    GEMINI_THINKING_BUDGET_STATE: int | None = 0
+    GEMINI_THINKING_BUDGET_RESPONDER: int | None = 0
+    GEMINI_THINKING_BUDGET_NOTES: int | None = None  # flash-lite menolak budget 0
+    # Saat startup, uji setiap kombinasi model + budget dengan satu panggilan ringan;
+    # startup gagal jika Gemini menolak. Matikan untuk tes / tanpa akses jaringan.
+    GEMINI_VALIDATE_ON_STARTUP: bool = True
 
-    NOTES_UPDATE_MODE: str = "inline"  # inline | background
+    # background: respons dikirim setelah turn & state tersimpan, Peran C berjalan setelahnya
+    # (giliran berikutnya & end session menunggu Peran C lewat advisory lock per sesi).
+    NOTES_UPDATE_MODE: Literal["inline", "background"] = "background"
+    NOTES_TIMEOUT_S: float = 20.0  # batas waktu Peran C agar lock sesi tidak tertahan
+    TURN_LOCK_TIMEOUT_S: float = 30.0  # batas tunggu lock giliran sebelumnya
     GREETING_SHORTCUT_ENABLED: bool = False
     DEBUG_INCLUDE_INTERNAL: bool = False
 
@@ -36,6 +49,18 @@ class Settings(BaseSettings):
         if isinstance(v, str) and "gemini-2.5" in v:
             return v.replace("gemini-2.5", "gemini-3.8")
         return v or "gemini-3.8-flash"
+
+    @field_validator(
+        "GEMINI_THINKING_BUDGET_STATE",
+        "GEMINI_THINKING_BUDGET_RESPONDER",
+        "GEMINI_THINKING_BUDGET_NOTES",
+        mode="before",
+    )
+    @classmethod
+    def parse_thinking_budget(cls, v: Any) -> Any:
+        if v is None or (isinstance(v, str) and v.strip().lower() in ("", "none", "null", "default")):
+            return None
+        return v
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

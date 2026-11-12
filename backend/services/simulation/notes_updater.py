@@ -6,7 +6,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 from core.config import get_settings
 from prompts.prompt_c_notes import PROMPT_C_VERSION, SYSTEM_INSTRUCTION_C
-from services.llm.gemini_client import get_gemini_client
+from services.llm.gemini_client import LLMConfigRejected, get_gemini_client
 
 logger = logging.getLogger("safesesi.simulation.notes")
 
@@ -58,8 +58,12 @@ Hanya kembalikan topik yang mengalami pembaruan deskripsi. Jika tidak ada peruba
                 user_prompt=user_prompt,
                 response_schema=NotesUpdateResult,
                 temperature=0.2,
+                thinking_budget=settings.GEMINI_THINKING_BUDGET_NOTES,
+                role="C",
             )
             return result.updated_topics
+        except LLMConfigRejected:
+            raise  # salah konfigurasi: retry tidak menolong
         except Exception as exc:
             last_exc = exc
             logger.warning(

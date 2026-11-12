@@ -6,7 +6,7 @@ from typing import Any
 from core.config import get_settings
 from prompts.prompt_a_state import PROMPT_A_VERSION, SYSTEM_INSTRUCTION_A
 from schemas.client_state import ClientState
-from services.llm.gemini_client import get_gemini_client
+from services.llm.gemini_client import LLMConfigRejected, get_gemini_client
 from services.simulation.disclosure import resolve_disclosure
 
 logger = logging.getLogger("safesesi.simulation.state")
@@ -47,6 +47,7 @@ async def update_client_state_llm(
         "discord_response": current_state.get("discord_response"),
     }
 
+    # Urutan: konteks skenario statis dulu, lalu bagian dinamis; riwayat & ucapan di akhir.
     user_prompt = f"""
 ### Konteks Skenario:
 - Nama Klien: {persona.get('name')}
@@ -79,8 +80,12 @@ Keluarkan JSON yang mematuhi skema ClientState.
                 user_prompt=user_prompt,
                 response_schema=ClientState,
                 temperature=0.2,
+                thinking_budget=settings.GEMINI_THINKING_BUDGET_STATE,
+                role="A",
             )
             break
+        except LLMConfigRejected:
+            raise  # salah konfigurasi: retry tidak menolong
         except Exception as exc:
             last_exc = exc
             logger.warning(

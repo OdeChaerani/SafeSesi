@@ -6,7 +6,7 @@ from typing import Any
 from core.config import get_settings
 from prompts.prompt_b_responder import PROMPT_B_VERSION, SYSTEM_INSTRUCTION_B
 from schemas.client_state import ClientState
-from services.llm.gemini_client import get_gemini_client
+from services.llm.gemini_client import LLMConfigRejected, get_gemini_client
 from services.simulation.disclosure import filter_hidden_facts
 
 logger = logging.getLogger("safesesi.simulation.responder")
@@ -60,6 +60,8 @@ async def generate_client_response_llm(
             "Karena Anda sudah dewasa/lebih berumur, bicaralah secara langsung dan sopan TANPA embel-embel panggilan (JANGAN memanggil 'Kak', dan JANGAN menebak 'Mas/Mbak/Pak/Bu'). Cukup jawab langsung seperti: 'Halo, selamat pagi', 'Kabar baik, terima kasih'."
         )
 
+    # Urutan: bagian statis per sesi dulu (konteks, persona, kasus, petunjuk), lalu bagian
+    # yang berubah tiap giliran, riwayat & ucapan terkini di akhir (prefix stabil untuk caching).
     user_prompt = f"""
 ### Konteks Situasi:
 Anda sedang berada dalam sesi konseling tatap maya (online video call) resmi yang sudah dijadwalkan bersama konselor Anda (pengguna adalah konselor).
@@ -76,6 +78,14 @@ Anda sedang berada dalam sesi konseling tatap maya (online video call) resmi yan
 - Permasalahan Utama: {case_data.get('main_problem')}
 - Riwayat & Dampak: {case_data.get('history_impact')}
 - Harapan & Konteks Perubahan: {case_data.get('expectation_change_context')}
+
+### Petunjuk Menanggapi:
+1. Panggilan ke Konselor (Usia Anda: {client_age} tahun):
+   - {addressing_guide}
+   - DILARANG menebak konselor adalah pria ('Mas'/'Pak') secara sepihak.
+2. Jika konselor hanya menyapa ('Halo', 'Hai', 'Selamat pagi', dll.), balaslah sapaan tersebut secara proporsional dan santun. JANGAN bertanya curiga seperti 'Ada apa ya?' karena Anda tahu ini adalah sesi konseling Anda.
+3. Jika konselor bertanya kabar ('Gimana kabarnya?'), jawab kondisi kabar Anda secara ringkas dan wajar. JANGAN melompat langsung membahas topik masalah (seperti rokok atau masalah pribadi) sebelum konselor mulai mengeksplorasinya.
+4. Bicaralah wajar dan ringkas (1–3 kalimat) dengan gaya lisan santai sesuai karakter persona Anda.
 
 ### Informasi Tersembunyi (Boleh Diungkap Bertahap HANYA JIKA Konteks Sangat Mendukung):
 {json.dumps(filtered_hidden_facts, indent=2, ensure_ascii=False, default=str) if filtered_hidden_facts else "[] (Belum ada informasi tersembunyi yang boleh Anda ungkapkan saat ini)"}
@@ -95,13 +105,7 @@ Anda sedang berada dalam sesi konseling tatap maya (online video call) resmi yan
 ### Ucapan Konselor Terkini:
 "{counselor_utterance}"
 
-Petunjuk Menanggapi:
-1. Panggilan ke Konselor (Usia Anda: {client_age} tahun):
-   - {addressing_guide}
-   - DILARANG menebak konselor adalah pria ('Mas'/'Pak') secara sepihak.
-2. Jika konselor hanya menyapa ('Halo', 'Hai', 'Selamat pagi', dll.), balaslah sapaan tersebut secara proporsional dan santun. JANGAN bertanya curiga seperti 'Ada apa ya?' karena Anda tahu ini adalah sesi konseling Anda.
-3. Jika konselor bertanya kabar ('Gimana kabarnya?'), jawab kondisi kabar Anda secara ringkas dan wajar. JANGAN melompat langsung membahas topik masalah (seperti rokok atau masalah pribadi) sebelum konselor mulai mengeksplorasinya.
-4. Bicaralah wajar dan ringkas (1–3 kalimat) dengan gaya lisan santai sesuai karakter persona Anda.
+Tanggapi ucapan konselor terkini sesuai Petunjuk Menanggapi di atas.
 """.strip()
 
     last_exc: Exception | None = None
@@ -112,7 +116,11 @@ Petunjuk Menanggapi:
                 system_instruction=SYSTEM_INSTRUCTION_B,
                 user_prompt=user_prompt,
                 temperature=0.7,
+                thinking_budget=settings.GEMINI_THINKING_BUDGET_RESPONDER,
+                role="B",
             )
+        except LLMConfigRejected:
+            raise  # salah konfigurasi: retry tidak menolong
         except Exception as exc:
             last_exc = exc
             logger.warning(
