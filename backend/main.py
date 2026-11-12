@@ -9,11 +9,15 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from api.v1 import api_v1_router
+from api import api_router
 from core.config import get_settings
 from core.errors import SafeSesiError
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%H:%M:%S",
+)
 logger = logging.getLogger("safesesi")
 
 
@@ -80,6 +84,6 @@ async def safesesi_error_handler(request: Request, exc: SafeSesiError) -> JSONRe
     )
 
 
-# Registrasi router sistem dan API v1
-app.include_router(api_v1_router, prefix="")
-app.include_router(api_v1_router, prefix="/api/v1")
+# Registrasi router sistem dan API
+app.include_router(api_router, prefix="")
+app.include_router(api_router, prefix="/api/v1")

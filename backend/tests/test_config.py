@@ -11,7 +11,7 @@ class TestConfig(unittest.TestCase):
             GEMINI_API_KEY="test_key",
         )
         self.assertEqual(settings.NOTES_UPDATE_MODE, "inline")
-        self.assertTrue(settings.GREETING_SHORTCUT_ENABLED)
+        self.assertFalse(settings.GREETING_SHORTCUT_ENABLED)
         self.assertFalse(settings.DEBUG_INCLUDE_INTERNAL)
         self.assertIn("http://localhost:5173", settings.CORS_ORIGINS)
 

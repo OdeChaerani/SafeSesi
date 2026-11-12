@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from typing import TypeVar
 from google import genai
 from google.genai import types
@@ -40,23 +41,47 @@ class GeminiAsyncClient:
     ) -> T:
         """Menghasilkan structured output JSON yang tervalidasi dengan skema Pydantic."""
         client = self._get_client()
+        t_start = time.perf_counter()
         try:
             config = types.GenerateContentConfig(
                 system_instruction=system_instruction,
                 temperature=temperature,
                 response_mime_type="application/json",
                 response_schema=response_schema,
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
             )
             response = await client.aio.models.generate_content(
                 model=model,
                 contents=user_prompt,
                 config=config,
             )
+            elapsed = time.perf_counter() - t_start
+            logger.debug("⚡ [Gemini SDK] generate_json (%s): %.3fs (%d ms)", model, elapsed, int(elapsed * 1000))
             raw_text = response.text or "{}"
             data = json.loads(raw_text)
             return response_schema.model_validate(data)
         except Exception as exc:
-            logger.exception("Gagal menghasilkan JSON terstruktur dari Gemini: %s", exc)
+            # Fallback jika model tidak mendukung thinking_config (misal error parameter invalid)
+            if "thinking" in str(exc).lower() or "invalid" in str(exc).lower():
+                try:
+                    fallback_cfg = types.GenerateContentConfig(
+                        system_instruction=system_instruction,
+                        temperature=temperature,
+                        response_mime_type="application/json",
+                        response_schema=response_schema,
+                    )
+                    response = await client.aio.models.generate_content(
+                        model=model,
+                        contents=user_prompt,
+                        config=fallback_cfg,
+                    )
+                    raw_text = response.text or "{}"
+                    data = json.loads(raw_text)
+                    return response_schema.model_validate(data)
+                except Exception:
+                    pass
+            elapsed = time.perf_counter() - t_start
+            logger.exception("Gagal menghasilkan JSON terstruktur dari Gemini (%.3fs): %s", elapsed, exc)
             raise LLMServiceError(f"Gagal memproses respons AI terstruktur: {exc}") from exc
 
     async def generate_text(
@@ -68,19 +93,39 @@ class GeminiAsyncClient:
     ) -> str:
         """Menghasilkan teks natural dalam Bahasa Indonesia."""
         client = self._get_client()
+        t_start = time.perf_counter()
         try:
             config = types.GenerateContentConfig(
                 system_instruction=system_instruction,
                 temperature=temperature,
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
             )
             response = await client.aio.models.generate_content(
                 model=model,
                 contents=user_prompt,
                 config=config,
             )
+            elapsed = time.perf_counter() - t_start
+            logger.debug("⚡ [Gemini SDK] generate_text (%s): %.3fs (%d ms)", model, elapsed, int(elapsed * 1000))
             return (response.text or "").strip()
         except Exception as exc:
-            logger.exception("Gagal menghasilkan teks dari Gemini: %s", exc)
+            # Fallback jika model tidak mendukung thinking_config
+            if "thinking" in str(exc).lower() or "invalid" in str(exc).lower():
+                try:
+                    fallback_cfg = types.GenerateContentConfig(
+                        system_instruction=system_instruction,
+                        temperature=temperature,
+                    )
+                    response = await client.aio.models.generate_content(
+                        model=model,
+                        contents=user_prompt,
+                        config=fallback_cfg,
+                    )
+                    return (response.text or "").strip()
+                except Exception:
+                    pass
+            elapsed = time.perf_counter() - t_start
+            logger.exception("Gagal menghasilkan teks dari Gemini (%.3fs): %s", elapsed, exc)
             raise LLMServiceError(f"Gagal menghasilkan ucapan klien: {exc}") from exc
 
 

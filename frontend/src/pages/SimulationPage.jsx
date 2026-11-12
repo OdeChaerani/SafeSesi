@@ -1,93 +1,299 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import SimulationHeader from '../components/simulation/SimulationHeader'
 import VirtualClientStage from '../components/simulation/VirtualClientStage'
 import TranscriptPanel from '../components/simulation/TranscriptPanel'
-
-const INITIAL_MESSAGES = [
-  {
-    sender: 'counselor',
-    name: 'Rani Aulia',
-    time: '03:45',
-    text: 'Bisa kamu ceritakan apa yang saat ini paling menyita waktumu?',
-  },
-  {
-    sender: 'client',
-    name: 'Nadia Putri',
-    time: '03:52',
-    text: 'Jadwal kuliah semester ini cukup padat, ditambah lagi ada persiapan proker himpunan yang tenggatnya berdekatan...',
-  },
-  {
-    sender: 'counselor',
-    name: 'Rani Aulia',
-    time: '04:05',
-    text: 'Tampaknya kamu merasa tertekan ketika beberapa tanggung jawab datang bersamaan.',
-  },
-  {
-    sender: 'client',
-    name: 'Nadia Putri',
-    time: '04:11',
-    text: 'Iya, betul sekali... rasanya bingung harus mulai dari mana.',
-  },
-]
+import { FALLBACK_SCENARIOS } from '../data/fallbackScenarios'
 
 export default function SimulationPage({
-  scenario = {
-    title: 'Menghadapi kewalahan oleh kesibukan',
-    category: 'Latihan Kelas',
-    clientName: 'Nadia Putri',
-  },
+  scenario: propsScenario,
   onExitSession,
 }) {
-  const [messages, setMessages] = useState(INITIAL_MESSAGES)
+  const { sessionId: paramSessionId } = useParams()
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  const scenario =
+    propsScenario ||
+    location.state?.scenario || {
+      title: 'Menavigasi Kelelahan Akademik dan Beban Organisasi',
+      category: 'Latihan Mandiri',
+      clientName: 'Nadia Putri',
+    }
+
+  const currentSessionId = paramSessionId || scenario.sessionId
+
+  // State untuk menyimpan detail sesi asli dari backend jika tersedia
+  const [sessionDetail, setSessionDetail] = useState(null)
+
+  // Skenario fallback jika skenario tidak memiliki metadata lengkap
+  const fallbackScenario = useMemo(() => {
+    const idToFind = scenario?.scenarioId || scenario?.id || 1
+    return (
+      FALLBACK_SCENARIOS.find((s) => String(s.id) === String(idToFind)) ||
+      FALLBACK_SCENARIOS[0]
+    )
+  }, [scenario])
+
+  // Menentukan data info klien dari database snapshot, navigation state, atau fallback
+  const clientInfo = useMemo(() => {
+    // Backend hanya mengirim ringkasan publik skenario (tanpa persona/kasus/hidden facts)
+    const pub = sessionDetail?.scenario || scenario?.publicScenario
+    if (pub?.client_name) {
+      return {
+        name: pub.client_name,
+        age: pub.client_age || scenario.clientAge || fallbackScenario.client_age,
+        gender: pub.client_gender || scenario.clientGender || fallbackScenario.client_gender,
+        role: pub.client_role || scenario.clientRole || fallbackScenario.client_role,
+        maritalStatus:
+          scenario.maritalStatus ||
+          scenario.marital_status ||
+          fallbackScenario.marital_status,
+        problem:
+          pub.initial_summary ||
+          scenario.mainProblem ||
+          scenario.main_problem ||
+          scenario.problem ||
+          fallbackScenario.main_problem,
+      }
+    }
+
+    return {
+      name:
+        scenario.client_name ||
+        scenario.clientName ||
+        fallbackScenario.client_name,
+      age:
+        scenario.client_age ||
+        scenario.clientAge ||
+        fallbackScenario.client_age,
+      gender:
+        scenario.client_gender ||
+        scenario.clientGender ||
+        fallbackScenario.client_gender,
+      role:
+        scenario.client_role ||
+        scenario.clientRole ||
+        fallbackScenario.client_role,
+      maritalStatus:
+        scenario.marital_status ||
+        scenario.maritalStatus ||
+        fallbackScenario.marital_status,
+      problem:
+        scenario.main_problem ||
+        scenario.mainProblem ||
+        scenario.problem ||
+        fallbackScenario.main_problem,
+    }
+  }, [sessionDetail, scenario, fallbackScenario])
+
+  const activeClientName = clientInfo.name
+  const activeTitle =
+    sessionDetail?.scenario?.title ||
+    scenario.scenarioTitle ||
+    scenario.title ||
+    fallbackScenario.title ||
+    'Latihan Konseling'
+  const activeCategory =
+    scenario.category ||
+    (sessionDetail?.class_id ? 'Latihan Kelas' : 'Latihan Mandiri')
+
+  // Mengambil nama konselor yang sedang login atau fallback
+  const activeCounselorName = (() => {
+    try {
+      const raw = localStorage.getItem('safesesi_auth_user')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        return parsed.username || 'Rani Aulia'
+      }
+    } catch {
+      // ignore
+    }
+    return 'Rani Aulia'
+  })()
+
+  const [messages, setMessages] = useState([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [clientStatus, setClientStatus] = useState('Mendengarkan aktif')
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
 
   // State untuk Panel Transkrip (Buka/Tutup & Ukuran Lebar)
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(true)
   const [transcriptWidth, setTranscriptWidth] = useState(340)
 
-  const getCurrentTime = () => {
-    const now = new Date()
-    return `${String(now.getMinutes()).padStart(2, '0')}:${String(
-      now.getSeconds()
-    ).padStart(2, '0')}`
+  // Ref untuk timer efek mengetik (typewriter)
+  const typingTimerRef = useRef(null)
+
+  // Timer sesi aktif berjalan otomatis dari 00:00
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setElapsedSeconds((prev) => prev + 1)
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [])
+
+  // Bersihkan timer efek mengetik saat unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimerRef.current) {
+        clearInterval(typingTimerRef.current)
+      }
+    }
+  }, [])
+
+  const formatTimestamp = (totalSecs) => {
+    const mins = String(Math.floor(totalSecs / 60)).padStart(2, '0')
+    const secs = String(totalSecs % 60).padStart(2, '0')
+    return `${mins}:${secs}`
   }
 
-  const handleSendMessage = (text) => {
+  // Muat riwayat dialog & detail snapshot dari backend jika memiliki currentSessionId
+  useEffect(() => {
+    let isMounted = true
+    if (currentSessionId) {
+      fetch(`http://localhost:8000/api/v1/sessions/${currentSessionId}`, {
+        headers: {
+          'X-Dev-User-Id': '1',
+        },
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (!isMounted || !data) return
+          setSessionDetail(data)
+          if (Array.isArray(data.turns) && data.turns.length > 0) {
+            const clientSpeakerName =
+              data.scenario?.client_name || activeClientName
+            const loaded = data.turns.map((t) => ({
+              sender: t.speaker,
+              name:
+                t.speaker === 'counselor'
+                  ? activeCounselorName
+                  : clientSpeakerName,
+              time: formatTimestamp(Math.floor((t.start_ms || 0) / 1000)),
+              text: t.content,
+              isTyping: false,
+            }))
+            setMessages(loaded)
+          }
+        })
+        .catch((err) => {
+          console.warn('Gagal memuat detail sesi:', err)
+        })
+    }
+    return () => {
+      isMounted = false
+    }
+  }, [currentSessionId, activeCounselorName, activeClientName])
+
+  // Menjalankan animasi efek diketik (typewriter effect) karakter per karakter
+  const typeOutResponse = (fullText) => {
+    if (typingTimerRef.current) {
+      clearInterval(typingTimerRef.current)
+    }
+
+    setClientStatus('Sedang berbicara...')
+    const responseTime = formatTimestamp(elapsedSeconds)
+
+    // Tambahkan entri klien kosong awal dengan isTyping: true
+    setMessages((prev) => [
+      ...prev,
+      {
+        sender: 'client',
+        name: activeClientName,
+        time: responseTime,
+        text: '',
+        isTyping: true,
+      },
+    ])
+
+    let charIndex = 0
+    // Kecepatan adaptif: teks panjang diketik lebih cepat agar pengguna tidak menunggu lama
+    const charDelay = fullText.length > 200 ? 14 : fullText.length > 100 ? 18 : 22
+
+    typingTimerRef.current = setInterval(() => {
+      charIndex += 1
+      if (charIndex <= fullText.length) {
+        const partialText = fullText.slice(0, charIndex)
+        setMessages((prev) => {
+          if (prev.length === 0) return prev
+          const copy = [...prev]
+          const lastIdx = copy.length - 1
+          if (copy[lastIdx].sender === 'client') {
+            copy[lastIdx] = {
+              ...copy[lastIdx],
+              text: partialText,
+              isTyping: charIndex < fullText.length,
+            }
+          }
+          return copy
+        })
+      } else {
+        clearInterval(typingTimerRef.current)
+        typingTimerRef.current = null
+        setIsProcessing(false)
+        setClientStatus('Mendengarkan aktif')
+      }
+    }, charDelay)
+  }
+
+  const handleSendMessage = async (text) => {
     const counselorMsg = {
       sender: 'counselor',
-      name: 'Rani Aulia',
-      time: getCurrentTime(),
+      name: activeCounselorName,
+      time: formatTimestamp(elapsedSeconds),
       text,
     }
 
     setMessages((prev) => [...prev, counselorMsg])
     setIsProcessing(true)
-    setClientStatus('Sedang merespons...')
+    setClientStatus('Sedang berpikir...')
 
-    // Simulasi respons interaktif dari klien virtual
-    setTimeout(() => {
-      const clientReplies = [
-        'Kadang aku merasa kalau aku menolak tugas himpunan, teman-teman akan kecewa padaku.',
-        'Aku mencoba bikin to-do list, tapi pas lihat daftarnya malah tambah cemas dan pusing.',
-        'Menurutmu wajar gak sih kalau aku merasa ingin istirahat dulu sejenak dari semua ini?',
-        'Iya, rasanya seperti dituntut sempurna di semua hal, padahal tenagaku ada batasnya.',
-      ]
-
-      const randomReply =
-        clientReplies[Math.floor(Math.random() * clientReplies.length)]
-
-      const clientMsg = {
-        sender: 'client',
-        name: scenario.clientName || 'Nadia Putri',
-        time: getCurrentTime(),
-        text: randomReply,
-      }
-
-      setMessages((prev) => [...prev, clientMsg])
+    if (!currentSessionId) {
       setIsProcessing(false)
       setClientStatus('Mendengarkan aktif')
-    }, 1200)
+      alert('Sesi simulasi tidak valid. Silakan mulai sesi dari halaman Briefing.')
+      return
+    }
+
+    // 100% LLM: Hubungkan langsung ke endpoint /turns di backend
+    try {
+      const res = await fetch(
+        `http://localhost:8000/api/v1/sessions/${currentSessionId}/turns`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Dev-User-Id': '1',
+          },
+          body: JSON.stringify({
+            content: text,
+            start_ms: elapsedSeconds * 1000,
+            end_ms: (elapsedSeconds + 1) * 1000,
+          }),
+        }
+      )
+
+      if (res.ok) {
+        const data = await res.json()
+        typeOutResponse(data.content)
+      } else {
+        let errorMsg = 'Layanan AI sedang mengalami kendala teknis.'
+        try {
+          const errData = await res.json()
+          if (errData.detail) errorMsg = errData.detail
+        } catch {
+          // ignore
+        }
+        setIsProcessing(false)
+        setClientStatus('Mendengarkan aktif')
+        alert(`Kendala Layanan AI: ${errorMsg}`)
+      }
+    } catch (err) {
+      console.error('Gagal terhubung ke backend LLM:', err)
+      setIsProcessing(false)
+      setClientStatus('Mendengarkan aktif')
+      alert('Tidak dapat terhubung ke server backend. Pastikan server backend sedang aktif.')
+    }
   }
 
   const handleStartResize = (e) => {
@@ -110,13 +316,33 @@ export default function SimulationPage({
     window.addEventListener('mouseup', handleMouseUp)
   }
 
-  const handleConfirmExit = () => {
+  const handleConfirmExit = async () => {
     if (
       window.confirm(
         'Apakah Anda yakin ingin mengakhiri sesi latihan ini sekarang?'
       )
     ) {
-      if (onExitSession) onExitSession()
+      if (currentSessionId) {
+        try {
+          await fetch(
+            `http://localhost:8000/api/v1/sessions/${currentSessionId}/end`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Dev-User-Id': '1',
+              },
+            }
+          )
+        } catch (e) {
+          console.warn('Gagal mengakhiri sesi di backend:', e)
+        }
+      }
+      if (onExitSession) {
+        onExitSession()
+      } else {
+        navigate('/latihan-mandiri')
+      }
     }
   }
 
@@ -124,8 +350,9 @@ export default function SimulationPage({
     <div className="w-full h-screen flex flex-col bg-[#352f55] text-white overflow-hidden select-none">
       {/* 1. Header Bar: Navbar Putih dengan Timer di samping tombol Akhiri Sesi */}
       <SimulationHeader
-        scenarioTitle={scenario.title}
-        category={scenario.category}
+        scenarioTitle={activeTitle}
+        category={activeCategory}
+        elapsedSeconds={elapsedSeconds}
         onExitSession={handleConfirmExit}
         isTranscriptOpen={isTranscriptOpen}
         onToggleTranscript={() => setIsTranscriptOpen((prev) => !prev)}
@@ -135,7 +362,8 @@ export default function SimulationPage({
       <div className="flex-1 flex flex-col md:flex-row relative w-full h-[calc(100vh-56px)] overflow-hidden bg-[#352f55]">
         {/* Central Stage */}
         <VirtualClientStage
-          clientName={scenario.clientName}
+          client={clientInfo}
+          clientName={activeClientName}
           clientStatus={clientStatus}
           onSendMessage={handleSendMessage}
           isProcessing={isProcessing}

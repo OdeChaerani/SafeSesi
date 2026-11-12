@@ -3,18 +3,22 @@ import { useEffect, useState } from 'react'
 export default function SimulationHeader({
   scenarioTitle = 'Menghadapi kewalahan oleh kesibukan',
   category = 'Latihan Kelas',
+  elapsedSeconds,
   onExitSession,
   isTranscriptOpen = true,
   onToggleTranscript,
 }) {
-  const [seconds, setSeconds] = useState(252) // 04:12
+  const [internalSeconds, setInternalSeconds] = useState(0)
 
   useEffect(() => {
+    if (elapsedSeconds !== undefined) return
     const timer = setInterval(() => {
-      setSeconds((prev) => prev + 1)
+      setInternalSeconds((prev) => prev + 1)
     }, 1000)
     return () => clearInterval(timer)
-  }, [])
+  }, [elapsedSeconds])
+
+  const seconds = elapsedSeconds !== undefined ? elapsedSeconds : internalSeconds
 
   const formatTimer = (totalSeconds) => {
     const mins = String(Math.floor(totalSeconds / 60)).padStart(2, '0')

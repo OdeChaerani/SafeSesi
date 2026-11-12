@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import time
 from typing import Any
 import asyncpg
 from core.config import get_settings
@@ -49,10 +50,12 @@ async def process_turn(
     6. Peran C: Notes Updater (inline / background).
     7. Mengembalikan TurnResponse tanpa membocorkan internal state (kecuali debug).
     """
-    settings = get_settings()
+    t_turn_start = time.perf_counter()
     session_id = session["id"]
+    settings = get_settings()
 
     # 1. Ekstraksi Snapshot Skenario yang Dibekukan
+    t_fetch_start = time.perf_counter()
     snapshot = session.get("scenario_snapshot", {})
     if isinstance(snapshot, str):
         snapshot = json.loads(snapshot)
@@ -78,8 +81,14 @@ async def process_turn(
     else:
         transcript_history = current_turns
 
-    # 4. Shortcut Sapaan (Greeting Bypass)
-    if settings.GREETING_SHORTCUT_ENABLED and classify_greeting(counselor_utterance):
+    t_fetch = time.perf_counter() - t_fetch_start
+
+    # 4. Shortcut Sapaan (Greeting Bypass - hanya di turn pertama jika diaktifkan)
+    if (
+        settings.GREETING_SHORTCUT_ENABLED
+        and not transcript_history
+        and classify_greeting(counselor_utterance)
+    ):
         client_reply = generate_greeting_response(persona.get("name", "Klien"))
 
         async with conn.transaction():
@@ -108,6 +117,15 @@ async def process_turn(
                 conn, session_id=session_id, turn_id=cl_turn_id, state=latest_state
             )
 
+        t_total = time.perf_counter() - t_turn_start
+        logger.info(
+            "⏱️ [Sesi #%s Turn #%d] Total: %.2fs (Shortcut Sapaan) -> 🗣️ Klien: \"%s\"",
+            session_id,
+            cl_turn_no,
+            t_total,
+            client_reply,
+        )
+
         internal_st = (
             ClientState.model_validate(latest_state)
             if settings.DEBUG_INCLUDE_INTERNAL
@@ -120,6 +138,7 @@ async def process_turn(
         )
 
     # 5. Pemrosesan Substantif: Peran A (State Updater)
+    t_state_start = time.perf_counter()
     new_state = await update_client_state_llm(
         counselor_utterance=counselor_utterance,
         current_state=latest_state,
@@ -128,9 +147,10 @@ async def process_turn(
         transcript_history=transcript_history,
         topic_notes=latest_topic_notes,
     )
+    t_state = time.perf_counter() - t_state_start
 
     # 6. Pemrosesan Substantif: Peran B (Client Responder)
-    # Pembatasan di level kode: hidden facts difilter di dalam generate_client_response_llm
+    t_resp_start = time.perf_counter()
     client_reply = await generate_client_response_llm(
         persona=persona,
         case_data=case_data,
@@ -140,8 +160,10 @@ async def process_turn(
         counselor_utterance=counselor_utterance,
         hidden_facts=hidden_facts,
     )
+    t_resp = time.perf_counter() - t_resp_start
 
     # 7. Persistensi Atomik Transaksi Turn Konselor + Turn Klien + State Klien
+    t_db_start = time.perf_counter()
     async with conn.transaction():
         c_turn_no = await get_next_turn_no(conn, session_id)
         c_turn_id = await save_turn(
@@ -169,9 +191,12 @@ async def process_turn(
             turn_id=cl_turn_id,
             state=new_state.model_dump(),
         )
+    t_db = time.perf_counter() - t_db_start
 
     # 8. Peran C: Notes Updater (Pembaruan Catatan Perkembangan Topik)
+    t_notes = 0.0
     if settings.NOTES_UPDATE_MODE == "inline":
+        t_notes_start = time.perf_counter()
         try:
             updated_topics = await update_topic_notes_llm(
                 current_topic_notes=latest_topic_notes,
@@ -192,11 +217,27 @@ async def process_turn(
                         turn_id=cl_turn_id,
                         description=ut.description,
                     )
+            t_notes = time.perf_counter() - t_notes_start
         except Exception as exc:
-            # Kegagalan notes updater tidak boleh menggugurkan giliran yang sudah sukses disimpan
-            logger.warning(
-                "Pembaruan catatan topik Peran C inline gagal (non-fatal): %s", exc
-            )
+            t_notes = time.perf_counter() - t_notes_start
+            logger.warning("Pembaruan catatan topik Peran C inline gagal (non-fatal): %s", exc)
+
+    t_total = time.perf_counter() - t_turn_start
+    reply_snippet = client_reply.replace("\n", " ")
+    if len(reply_snippet) > 80:
+        reply_snippet = reply_snippet[:80] + "..."
+
+    logger.info(
+        "⏱️ [Sesi #%s Turn #%d] Total: %.2fs (State: %.2fs | Klien: %.2fs | Notes: %.2fs | DB: %dms) -> 🗣️ Klien: \"%s\"",
+        session_id,
+        cl_turn_no,
+        t_total,
+        t_state,
+        t_resp,
+        t_notes,
+        int((t_fetch + t_db) * 1000),
+        reply_snippet,
+    )
 
     internal_st = new_state if settings.DEBUG_INCLUDE_INTERNAL else None
     return TurnResponse(

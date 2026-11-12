@@ -20,6 +20,7 @@ from repositories.topics import (
     save_topic_note,
 )
 from repositories.turns import get_session_turns
+from schemas.scenario import PublicScenarioInfo
 from schemas.session import (
     CreateSessionRequest,
     CreateTurnRequest,
@@ -30,6 +31,15 @@ from schemas.session import (
 from services.simulation.orchestrator import get_session_lock, process_turn
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
+
+
+def to_public_session(session: dict[str, Any]) -> dict[str, Any]:
+    """Data sesi untuk frontend: scenario_snapshot diganti ringkasan publik skenario."""
+    public = {k: v for k, v in session.items() if k != "scenario_snapshot"}
+    public["scenario"] = PublicScenarioInfo.from_snapshot(
+        session.get("scenario_snapshot") or {}, scenario_id=session.get("scenario_id")
+    ).model_dump()
+    return public
 
 
 @router.post("", response_model=SessionResponse, status_code=status.HTTP_201_CREATED)
@@ -133,7 +143,7 @@ async def create_new_session(
             # Salin catatan topik terakhir dari parent session
             await copy_topic_notes_from_parent(conn, payload.parent_session_id, new_session_id)
 
-        return session_record
+        return to_public_session(session_record)
 
 
 @router.get("/{session_id}")
@@ -142,7 +152,10 @@ async def get_session_detail(
     user: dict[str, Any] = Depends(get_current_user),
     conn: asyncpg.Connection = Depends(get_db),
 ) -> dict[str, Any]:
-    """Mengambil detail sesi konseling, riwayat turns, dan topik pembahasan."""
+    """Mengambil detail sesi konseling dan riwayat turns.
+
+    Topik pembahasan (memuat judul hidden facts) hanya untuk dosen/admin.
+    """
     session = await get_session_by_id(conn, session_id)
     if not session:
         raise HTTPException(
@@ -152,14 +165,11 @@ async def get_session_detail(
 
     verify_session_ownership(session, user)
 
-    turns = await get_session_turns(conn, session_id)
-    topics = await get_latest_topic_notes(conn, session_id)
-
-    return {
-        **session,
-        "turns": turns,
-        "topics": topics,
-    }
+    detail = to_public_session(session)
+    detail["turns"] = await get_session_turns(conn, session_id)
+    if user.get("role") in ("admin", "lecturer"):
+        detail["topics"] = await get_latest_topic_notes(conn, session_id)
+    return detail
 
 
 @router.post("/{session_id}/turns", response_model=TurnResponse)

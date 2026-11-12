@@ -39,7 +39,7 @@ async def update_topic_notes_llm(
 
     user_prompt = f"""
 ### Daftar Topik & Catatan Saat Ini:
-{json.dumps([{"nama_topik": t.get("topic_name"), "catatan_saat_ini": t.get("description")} for t in current_topic_notes], indent=2, ensure_ascii=False)}
+{json.dumps([{"nama_topik": t.get("topic_name"), "catatan_saat_ini": t.get("description")} for t in current_topic_notes], indent=2, ensure_ascii=False, default=str)}
 
 ### Dialog Giliran Ini:
 - Konselor: "{counselor_utterance}"

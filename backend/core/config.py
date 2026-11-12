@@ -15,15 +15,27 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = ""
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL_STATE: str = "gemini-2.5-flash"
-    GEMINI_MODEL_RESPONDER: str = "gemini-2.5-flash"
-    GEMINI_MODEL_NOTES: str = "gemini-2.5-flash"
+    GEMINI_MODEL_STATE: str = "gemini-3.8-flash"
+    GEMINI_MODEL_RESPONDER: str = "gemini-3.8-flash"
+    GEMINI_MODEL_NOTES: str = "gemini-3.8-flash"
 
     NOTES_UPDATE_MODE: str = "inline"  # inline | background
-    GREETING_SHORTCUT_ENABLED: bool = True
+    GREETING_SHORTCUT_ENABLED: bool = False
     DEBUG_INCLUDE_INTERNAL: bool = False
 
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
+
+    @field_validator(
+        "GEMINI_MODEL_STATE",
+        "GEMINI_MODEL_RESPONDER",
+        "GEMINI_MODEL_NOTES",
+        mode="before",
+    )
+    @classmethod
+    def upgrade_deprecated_models(cls, v: Any) -> str:
+        if isinstance(v, str) and "gemini-2.5" in v:
+            return v.replace("gemini-2.5", "gemini-3.8")
+        return v or "gemini-3.8-flash"
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

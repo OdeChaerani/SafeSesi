@@ -1,7 +1,8 @@
 import { useState } from 'react'
 
 export default function VirtualClientStage({
-  clientName = 'Nadia Putri',
+  client = {},
+  clientName: propClientName,
   clientStatus = 'Mendengarkan aktif',
   onSendMessage,
   isProcessing = false,
@@ -9,9 +10,23 @@ export default function VirtualClientStage({
   onOpenTranscript,
 }) {
   const [inputText, setInputText] = useState('')
-  const [isBioOpen, setIsBioOpen] = useState(true)
+  const [isBioOpen, setIsBioOpen] = useState(false)
+  const [isCamPreviewOpen, setIsCamPreviewOpen] = useState(false)
   const [isMicActive, setIsMicActive] = useState(false)
   const [isCamActive, setIsCamActive] = useState(true)
+
+  const effectiveClient = {
+    name: client.name || propClientName || 'Nadia Putri',
+    age: client.age || 19,
+    gender: client.gender || 'Perempuan',
+    role: client.role || 'Mahasiswa',
+    maritalStatus: client.maritalStatus || client.marital_status || null,
+    problem:
+      client.problem ||
+      client.main_problem ||
+      'Kewalahan membagi waktu kuliah & organisasi, memicu kelelahan mental.',
+  }
+  const clientName = effectiveClient.name
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -30,6 +45,154 @@ export default function VirtualClientStage({
     >
       {/* Ambient Studio Lighting Glow */}
       <div className="absolute w-[460px] h-[460px] rounded-full bg-gradient-to-tr from-[#65587c]/25 via-[#503a73]/25 to-[#f5b51b]/15 blur-3xl pointer-events-none -translate-y-6" />
+
+      {/* Top-Left Controls: Info Klien & Kamera Anda (Tidak menghalangi chat bar di bawah) */}
+      <div className="absolute top-4 left-4 z-30 flex items-center gap-2">
+        {/* 1. Info Klien Pill & Dropdown */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsBioOpen((prev) => !prev)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl shadow-lg border text-xs font-bold transition-all cursor-pointer ${
+              isBioOpen
+                ? 'bg-[#f5b51b] text-[#352f55] border-[#f5b51b]'
+                : 'bg-white text-[#352f55] border-slate-100 hover:bg-slate-50'
+            }`}
+            title={isBioOpen ? 'Tutup Info Klien' : 'Buka Info Klien'}
+          >
+            <span className="material-symbols-outlined text-[17px] text-[#f5b51b]">
+              badge
+            </span>
+            <span>Info Klien</span>
+            <span className="material-symbols-outlined text-[16px] text-slate-400">
+              {isBioOpen ? 'expand_less' : 'expand_more'}
+            </span>
+          </button>
+
+          {/* Floating Dropdown Card Info Klien */}
+          {isBioOpen && (
+            <div className="absolute top-11 left-0 w-[280px] bg-white rounded-2xl p-3.5 shadow-2xl border border-slate-100 z-40 text-[#1e1a34]">
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
+                <div className="flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[#f5b51b] text-base">
+                    badge
+                  </span>
+                  <span className="text-xs font-bold text-[#1e1a34]">Profil Klien</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsBioOpen(false)}
+                  className="w-6 h-6 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center cursor-pointer transition"
+                  title="Tutup Info Klien"
+                >
+                  <span className="material-symbols-outlined text-[16px]">close</span>
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-1.5 text-[11px]">
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-slate-500 font-medium shrink-0">Nama:</span>
+                  <span className="font-bold text-[#1e1a34] truncate text-right">
+                    {effectiveClient.name}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-slate-500 font-medium shrink-0">Usia &amp; Gender:</span>
+                  <span className="font-semibold text-slate-700 truncate text-right">
+                    {effectiveClient.age} th · {effectiveClient.gender}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-slate-500 font-medium shrink-0">Pekerjaan:</span>
+                  <span className="font-semibold text-slate-700 truncate text-right" title={effectiveClient.role}>
+                    {effectiveClient.role}
+                  </span>
+                </div>
+                {effectiveClient.maritalStatus && (
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-slate-500 font-medium shrink-0">Pernikahan:</span>
+                    <span className="font-semibold text-slate-700 truncate text-right">
+                      {effectiveClient.maritalStatus}
+                    </span>
+                  </div>
+                )}
+                {effectiveClient.problem && (
+                  <div className="mt-1 p-2 rounded-lg text-[10px] leading-relaxed text-slate-600 bg-slate-50 border border-slate-200/80 max-h-28 overflow-y-auto">
+                    {effectiveClient.problem}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 2. Kamera Anda (Self Preview) Toggle Button & Mini PIP */}
+        <div className="relative hidden md:block">
+          <button
+            type="button"
+            onClick={() => setIsCamPreviewOpen((prev) => !prev)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl shadow-lg border text-xs font-bold transition-all cursor-pointer ${
+              isCamPreviewOpen
+                ? 'bg-[#352f55] text-white border-[#352f55]'
+                : 'bg-white text-[#352f55] border-slate-100 hover:bg-slate-50'
+            }`}
+            title={isCamPreviewOpen ? 'Sembunyikan Kamera Anda' : 'Tampilkan Kamera Anda'}
+          >
+            <span className="material-symbols-outlined text-[17px] text-emerald-500">
+              {isCamActive ? 'videocam' : 'videocam_off'}
+            </span>
+            <span className="hidden sm:inline">Kamera Anda</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          </button>
+
+          {/* Self-Camera PIP Window */}
+          {isCamPreviewOpen && (
+            <div className="absolute top-11 left-0 w-44 rounded-xl p-2.5 shadow-2xl bg-white border border-slate-100 z-40 text-[#1e1a34]">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded-full border border-slate-200/80">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span className="text-[9px] font-bold text-[#1e1a34] tracking-wider">
+                    Anda
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsCamPreviewOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
+                  title="Tutup Preview"
+                >
+                  <span className="material-symbols-outlined text-xs">close</span>
+                </button>
+              </div>
+
+              {/* Video Preview Box */}
+              <div className="w-full h-16 rounded-lg bg-[#241d3b] flex items-center justify-center relative overflow-hidden mb-2">
+                {isCamActive ? (
+                  <span className="material-symbols-outlined text-2xl text-[#cfc0e9]/50">
+                    person
+                  </span>
+                ) : (
+                  <span className="material-symbols-outlined text-lg text-slate-400">
+                    videocam_off
+                  </span>
+                )}
+              </div>
+
+              {/* Camera Toggle Button */}
+              <button
+                type="button"
+                onClick={() => setIsCamActive((prev) => !prev)}
+                className="w-full bg-slate-100 hover:bg-slate-200 text-[#1e1a34] py-1 px-2 rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer border border-slate-200/60"
+              >
+                <span className="material-symbols-outlined text-xs text-[#352f55]">
+                  {isCamActive ? 'videocam' : 'videocam_off'}
+                </span>
+                <span>{isCamActive ? 'Kamera Aktif' : 'Kamera Mati'}</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Floating Toggle Button for Transcript (muncul di kanan saat panel tertutup) */}
       {!isTranscriptOpen && onOpenTranscript && (
@@ -50,10 +213,22 @@ export default function VirtualClientStage({
       <div className="flex-1 flex flex-col items-center justify-center w-full z-10 my-auto">
         <div className="relative flex flex-col items-center justify-center">
           {/* Pulsing Golden Glow behind Avatar */}
-          <div className="absolute -top-3 w-44 h-44 rounded-full bg-[#f5b51b]/15 blur-2xl animate-pulse pointer-events-none" />
+          <div
+            className={`absolute -top-3 w-44 h-44 rounded-full blur-2xl pointer-events-none transition-all duration-500 ${
+              clientStatus === 'Sedang berbicara...'
+                ? 'bg-[#f5b51b]/30 scale-110 animate-pulse'
+                : 'bg-[#f5b51b]/15 animate-pulse'
+            }`}
+          />
 
           {/* Avatar Container */}
-          <div className="p-4 rounded-full bg-[#27213f]/70 backdrop-blur-md border border-white/20 shadow-2xl mb-2.5">
+          <div
+            className={`p-4 rounded-full bg-[#27213f]/70 backdrop-blur-md border transition-all duration-500 mb-2.5 ${
+              clientStatus === 'Sedang berbicara...'
+                ? 'border-[#f5b51b]/50 shadow-[0_0_35px_rgba(245,181,27,0.35)]'
+                : 'border-white/20 shadow-2xl'
+            }`}
+          >
             <svg
               className="w-36 h-36 md:w-40 md:h-40 text-[#cfc0e9] drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)]"
               fill="currentColor"
@@ -96,103 +271,45 @@ export default function VirtualClientStage({
           <div className="flex items-center gap-2 mt-1.5 px-3 py-1 rounded-full bg-white shadow-md border border-slate-100">
             <div className="flex items-center gap-1 h-2.5 text-[#f5b51b]">
               <span
-                className="w-1 h-2 bg-[#f5b51b] rounded-full animate-bounce"
+                className={`w-1 h-2 bg-[#f5b51b] rounded-full ${
+                  clientStatus === 'Sedang berbicara...'
+                    ? 'animate-bounce'
+                    : clientStatus.includes('berpikir') || clientStatus.includes('proses')
+                    ? 'animate-pulse'
+                    : 'opacity-40'
+                }`}
                 style={{ animationDelay: '0.1s' }}
               />
               <span
-                className="w-1 h-3 bg-[#f5b51b] rounded-full animate-bounce"
+                className={`w-1 h-3 bg-[#f5b51b] rounded-full ${
+                  clientStatus === 'Sedang berbicara...'
+                    ? 'animate-bounce'
+                    : clientStatus.includes('berpikir') || clientStatus.includes('proses')
+                    ? 'animate-pulse'
+                    : 'opacity-40'
+                }`}
                 style={{ animationDelay: '0.25s' }}
               />
               <span
-                className="w-1 h-2 bg-[#f5b51b] rounded-full animate-bounce"
+                className={`w-1 h-2 bg-[#f5b51b] rounded-full ${
+                  clientStatus === 'Sedang berbicara...'
+                    ? 'animate-bounce'
+                    : clientStatus.includes('berpikir') || clientStatus.includes('proses')
+                    ? 'animate-pulse'
+                    : 'opacity-40'
+                }`}
                 style={{ animationDelay: '0.4s' }}
               />
             </div>
             <span className="text-xs text-[#1e1a34] font-semibold">
-              {isProcessing ? 'Sedang memproses...' : clientStatus}
+              {clientStatus}
             </span>
           </div>
-        </div>
-      </div>
-
-      {/* Floating Bottom-Left Controls (Camera Preview & Client Bio) */}
-      <div className="hidden lg:flex absolute bottom-5 left-5 flex-col gap-2.5 z-30 max-w-[240px]">
-        {/* Crisp White Info Klien Card */}
-        <div className="rounded-xl p-3 shadow-xl transition-all duration-300 bg-white border border-slate-100 text-[#1e1a34]">
-          <div
-            className="flex items-center justify-between cursor-pointer"
-            onClick={() => setIsBioOpen((prev) => !prev)}
-          >
-            <div className="flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-[#f5b51b] text-base">
-                badge
-              </span>
-              <span className="text-xs font-bold text-[#1e1a34]">Info Klien</span>
-            </div>
-            <span className="material-symbols-outlined text-slate-400 text-base">
-              {isBioOpen ? 'expand_less' : 'expand_more'}
-            </span>
-          </div>
-
-          {isBioOpen && (
-            <div className="mt-2 pt-2 flex flex-col gap-1 border-t border-slate-100 text-[11px]">
-              <div className="flex justify-between items-center">
-                <span className="text-slate-500 font-medium">Nama:</span>
-                <span className="font-bold text-[#1e1a34]">{clientName}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-500 font-medium">Usia:</span>
-                <span className="font-semibold text-slate-700">19 th · Perempuan</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-500 font-medium">Status:</span>
-                <span className="font-semibold text-slate-700">Sem. 3 · Psikologi</span>
-              </div>
-              <div className="mt-1 p-2 rounded-lg text-[10px] leading-relaxed text-slate-600 bg-slate-50 border border-slate-200/80">
-                Kewalahan membagi waktu kuliah &amp; organisasi, memicu kelelahan mental.
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Crisp White Mini Self-Camera Card */}
-        <div className="w-38 rounded-xl overflow-hidden shadow-xl flex flex-col justify-between p-2.5 bg-white border border-slate-100">
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded-full border border-slate-200/80">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span className="text-[9px] font-bold text-[#1e1a34] tracking-wider">
-                Anda
-              </span>
-            </div>
-            <span className="material-symbols-outlined text-slate-400 text-xs">
-              {isCamActive ? 'videocam' : 'videocam_off'}
-            </span>
-          </div>
-
-          {/* Video Preview Box */}
-          <div className="w-full h-14 rounded-lg bg-[#241d3b] flex items-center justify-center relative overflow-hidden mb-1.5">
-            <span className="material-symbols-outlined text-2xl text-[#cfc0e9]/50">
-              person
-            </span>
-          </div>
-
-          {/* Camera Toggle Button */}
-          <button
-            type="button"
-            onClick={() => setIsCamActive((prev) => !prev)}
-            className="w-full bg-slate-100 hover:bg-slate-200 text-[#1e1a34] py-1 px-2 rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer border border-slate-200/60"
-            title={isCamActive ? 'Matikan Kamera' : 'Nyalakan Kamera'}
-          >
-            <span className="material-symbols-outlined text-xs text-[#352f55]">
-              {isCamActive ? 'videocam' : 'videocam_off'}
-            </span>
-            <span>{isCamActive ? 'Kamera Aktif' : 'Kamera Mati'}</span>
-          </button>
         </div>
       </div>
 
       {/* Crisp White Input Teks Bar Card */}
-      <div className="w-full max-w-lg z-20 pb-1 px-2">
+      <div className="w-full max-w-xl z-20 pb-2 px-4">
         <form
           onSubmit={handleSubmit}
           className="flex items-center gap-2 bg-white border border-slate-100 rounded-2xl p-1.5 shadow-2xl"

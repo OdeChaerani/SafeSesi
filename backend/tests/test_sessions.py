@@ -3,7 +3,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, patch
 from fastapi import HTTPException
 
-from api.v1.sessions import create_new_session, end_active_session, get_session_detail
+from api.sessions import create_new_session, end_active_session, get_session_detail
 from schemas.session import CreateSessionRequest
 from tests.base import BaseTestCase
 
@@ -17,12 +17,12 @@ class TestSessions(BaseTestCase):
         self.mock_conn = self.create_mock_connection()
         self.snapshot = self.get_sample_snapshot()
 
-    @patch("api.v1.sessions.get_scenario_by_id")
-    @patch("api.v1.sessions.build_scenario_snapshot")
-    @patch("api.v1.sessions.create_session")
-    @patch("api.v1.sessions.create_session_topics_from_snapshot")
-    @patch("api.v1.sessions.save_client_state")
-    @patch("api.v1.sessions.save_topic_note")
+    @patch("api.sessions.get_scenario_by_id")
+    @patch("api.sessions.build_scenario_snapshot")
+    @patch("api.sessions.create_session")
+    @patch("api.sessions.create_session_topics_from_snapshot")
+    @patch("api.sessions.save_client_state")
+    @patch("api.sessions.save_topic_note")
     def test_create_session_success(
         self,
         mock_save_note,
@@ -72,7 +72,7 @@ class TestSessions(BaseTestCase):
         )
         self.assertEqual(mock_save_note.call_count, 2)
 
-    @patch("api.v1.sessions.get_scenario_by_id")
+    @patch("api.sessions.get_scenario_by_id")
     def test_create_session_catalog_access_denied(self, mock_get_scen):
         """Memastikan latihan mandiri ditolak jika skenario bukan berstatus katalog umum."""
         mock_get_scen.return_value = {
@@ -93,14 +93,14 @@ class TestSessions(BaseTestCase):
         self.assertEqual(ctx.exception.status_code, 403)
         self.assertIn("katalog", ctx.exception.detail)
 
-    @patch("api.v1.sessions.get_scenario_by_id")
-    @patch("api.v1.sessions.get_session_by_id")
-    @patch("api.v1.sessions.build_scenario_snapshot")
-    @patch("api.v1.sessions.create_session")
-    @patch("api.v1.sessions.create_session_topics_from_snapshot")
-    @patch("api.v1.sessions.get_latest_client_state")
-    @patch("api.v1.sessions.save_client_state")
-    @patch("api.v1.sessions.copy_topic_notes_from_parent")
+    @patch("api.sessions.get_scenario_by_id")
+    @patch("api.sessions.get_session_by_id")
+    @patch("api.sessions.build_scenario_snapshot")
+    @patch("api.sessions.create_session")
+    @patch("api.sessions.create_session_topics_from_snapshot")
+    @patch("api.sessions.get_latest_client_state")
+    @patch("api.sessions.save_client_state")
+    @patch("api.sessions.copy_topic_notes_from_parent")
     def test_create_session_continue_mode_inheritance(
         self,
         mock_copy_notes,
@@ -165,13 +165,13 @@ class TestSessions(BaseTestCase):
         )
         mock_copy_notes.assert_called_once_with(self.mock_conn, 101, 102)
 
-    @patch("api.v1.sessions.get_session_by_id")
-    @patch("api.v1.sessions.get_session_turns")
-    @patch("api.v1.sessions.get_latest_topic_notes")
+    @patch("api.sessions.get_session_by_id")
+    @patch("api.sessions.get_session_turns")
+    @patch("api.sessions.get_latest_topic_notes")
     def test_get_session_detail_success(
         self, mock_get_notes, mock_get_turns, mock_get_sess
     ):
-        """Memastikan detail sesi mengembalikan data sesi beserta riwayat turns dan topik."""
+        """Memastikan detail sesi untuk mahasiswa memuat turns tanpa snapshot internal maupun topik."""
         mock_sess = self.get_sample_session(session_id=101, student_id=10)
         mock_get_sess.return_value = mock_sess
         mock_get_turns.return_value = [
@@ -188,10 +188,13 @@ class TestSessions(BaseTestCase):
 
         self.assertEqual(detail["id"], 101)
         self.assertEqual(len(detail["turns"]), 2)
-        self.assertEqual(len(detail["topics"]), 1)
+        self.assertNotIn("topics", detail)
+        self.assertNotIn("scenario_snapshot", detail)
+        self.assertEqual(detail["scenario"]["client_name"], "Nadia Maharani")
+        mock_get_notes.assert_not_called()
 
-    @patch("api.v1.sessions.get_session_by_id")
-    @patch("api.v1.sessions.end_session")
+    @patch("api.sessions.get_session_by_id")
+    @patch("api.sessions.end_session")
     def test_end_session_success(self, mock_end_sess, mock_get_sess):
         """Memastikan pengakhiran sesi mengupdate status menjadi completed dan menghitung durasi."""
         mock_sess = self.get_sample_session(
@@ -214,4 +217,44 @@ class TestSessions(BaseTestCase):
         self.assertEqual(res["id"], 101)
         self.assertEqual(res["status"], "completed")
         self.assertEqual(res["duration_seconds"], 540)
+
+    @patch("api.scenarios.get_catalog_scenarios")
+    def test_list_catalog_scenarios(self, mock_get_cat):
+        """Memastikan endpoint katalog mengembalikan daftar skenario dengan filter & counter."""
+        from api.scenarios import list_catalog_scenarios
+
+        mock_get_cat.return_value = {
+            "items": [
+                {
+                    "id": 1,
+                    "title": "SS-NAD-01 Nadia Maharani",
+                    "change_target": "Membatasi tugas tambahan",
+                    "client_name": "Nadia Maharani",
+                    "client_age": 19,
+                    "client_gender": "Perempuan",
+                    "client_role": "Mahasiswi Psikologi",
+                    "main_problem": "Kewalahan membagi tanggung jawab",
+                    "attempt_status": "unattempted",
+                    "total_attempts": 0,
+                    "last_completed_session_id": None,
+                    "active_session_id": None,
+                }
+            ],
+            "total": 1,
+            "unattempted_count": 1,
+            "attempted_count": 0,
+        }
+
+        res = self.run_async(
+            list_catalog_scenarios(
+                search=None,
+                status="all",
+                user=self.mock_user,
+                conn=self.mock_conn,
+            )
+        )
+
+        self.assertEqual(res["total"], 1)
+        self.assertEqual(res["items"][0]["client_name"], "Nadia Maharani")
+        self.assertEqual(res["items"][0]["attempt_status"], "unattempted")
 

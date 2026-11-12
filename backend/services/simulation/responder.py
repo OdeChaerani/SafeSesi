@@ -7,6 +7,7 @@ from core.config import get_settings
 from prompts.prompt_b_responder import PROMPT_B_VERSION, SYSTEM_INSTRUCTION_B
 from schemas.client_state import ClientState
 from services.llm.gemini_client import get_gemini_client
+from services.simulation.disclosure import filter_hidden_facts
 
 logger = logging.getLogger("safesesi.simulation.responder")
 
@@ -22,9 +23,9 @@ async def generate_client_response_llm(
 ) -> str:
     """Peran B: Client Responder (menghasilkan ucapan respon klien virtual).
 
-    PEMBATASAN DI LEVEL KODE:
-    Hidden facts HANYA dikirimkan ke prompt jika disclosure_level bukan 'guarded'.
-    Jika 'guarded', list hidden facts dikosongkan.
+    PEMBATASAN DI LEVEL KODE (lihat services/simulation/disclosure.py):
+    Fakta masuk prompt hanya jika Disclosure saat ini >= tingkat minimal fakta,
+    dan saat Discord tampak hanya fakta yang sudah terungkap.
     Dilengkapi mekanisme retry 1x.
     """
     settings = get_settings()
@@ -33,12 +34,36 @@ async def generate_client_response_llm(
     state_dict = (
         new_state.model_dump() if isinstance(new_state, ClientState) else new_state
     )
-    current_disclosure = state_dict.get("disclosure_level", "guarded")
 
-    # Code-level boundary enforcement based on system specification
-    filtered_hidden_facts = hidden_facts if current_disclosure != "guarded" else []
+    allowed_facts = filter_hidden_facts(
+        hidden_facts,
+        disclosure_level=state_dict.get("disclosure_level"),
+        discord_present=bool(state_dict.get("discord_present")),
+        topic_notes=topic_notes,
+    )
+    filtered_hidden_facts = [
+        {k: v for k, v in fact.items() if k not in ("min_disclosure_level", "sort_order")}
+        for fact in allowed_facts
+    ]
+
+    try:
+        client_age = int(persona.get("age", 30))
+    except (ValueError, TypeError):
+        client_age = 30
+
+    if client_age < 25:
+        addressing_guide = (
+            "Karena Anda masih muda, Anda boleh memanggil konselor 'Kak' (misal: 'Halo Kak', 'Kabar baik Kak')."
+        )
+    else:
+        addressing_guide = (
+            "Karena Anda sudah dewasa/lebih berumur, bicaralah secara langsung dan sopan TANPA embel-embel panggilan (JANGAN memanggil 'Kak', dan JANGAN menebak 'Mas/Mbak/Pak/Bu'). Cukup jawab langsung seperti: 'Halo, selamat pagi', 'Kabar baik, terima kasih'."
+        )
 
     user_prompt = f"""
+### Konteks Situasi:
+Anda sedang berada dalam sesi konseling tatap maya (online video call) resmi yang sudah dijadwalkan bersama konselor Anda (pengguna adalah konselor).
+
 ### Profil Persona Anda:
 - Nama: {persona.get('name')}
 - Usia / Gender: {persona.get('age')} tahun, {persona.get('gender')}
@@ -53,7 +78,7 @@ async def generate_client_response_llm(
 - Harapan & Konteks Perubahan: {case_data.get('expectation_change_context')}
 
 ### Informasi Tersembunyi (Boleh Diungkap Bertahap HANYA JIKA Konteks Sangat Mendukung):
-{json.dumps(filtered_hidden_facts, indent=2, ensure_ascii=False) if filtered_hidden_facts else "[] (Keterbukaan masih 'guarded', tidak ada fakta tersembunyi yang diungkapkan)"}
+{json.dumps(filtered_hidden_facts, indent=2, ensure_ascii=False, default=str) if filtered_hidden_facts else "[] (Belum ada informasi tersembunyi yang boleh Anda ungkapkan saat ini)"}
 
 ### Kondisi Emosi & Keterbukaan Anda Saat Ini:
 - Emosi: {state_dict.get('emotion_type')} ({state_dict.get('emotion_cause')})
@@ -62,16 +87,21 @@ async def generate_client_response_llm(
 - Ketegangan Hubungan (Discord): {'ADA' if state_dict.get('discord_present') else 'Tidak Tampak'} {f"- Catatan: {state_dict.get('discord_context')}" if state_dict.get('discord_present') else ''}
 
 ### Catatan Pembahasan Topik Sejauh Ini:
-{json.dumps([{"topik": t.get("topic_name"), "catatan": t.get("description")} for t in topic_notes], indent=2, ensure_ascii=False)}
+{json.dumps([{"topik": t.get("topic_name"), "catatan": t.get("description")} for t in topic_notes], indent=2, ensure_ascii=False, default=str)}
 
-### Percakapan Terakhir:
-{json.dumps([{"speaker": t.get("speaker"), "content": t.get("content")} for t in transcript_history[-8:]], indent=2, ensure_ascii=False)}
+### Riwayat Percakapan Sebelumnya:
+{json.dumps([{"speaker": t.get("speaker"), "content": t.get("content")} for t in transcript_history[-8:]], indent=2, ensure_ascii=False, default=str) if transcript_history else "[] (Belum ada percakapan sebelumnya, sesi baru dimulai)"}
 
 ### Ucapan Konselor Terkini:
 "{counselor_utterance}"
 
-Bicaralah sebagai klien virtual dengan menghayati persona dan kondisi di atas.
-Tanggapi ucapan konselor secara wajar dan ringkas (1–3 kalimat) dalam Bahasa Indonesia.
+Petunjuk Menanggapi:
+1. Panggilan ke Konselor (Usia Anda: {client_age} tahun):
+   - {addressing_guide}
+   - DILARANG menebak konselor adalah pria ('Mas'/'Pak') secara sepihak.
+2. Jika konselor hanya menyapa ('Halo', 'Hai', 'Selamat pagi', dll.), balaslah sapaan tersebut secara proporsional dan santun. JANGAN bertanya curiga seperti 'Ada apa ya?' karena Anda tahu ini adalah sesi konseling Anda.
+3. Jika konselor bertanya kabar ('Gimana kabarnya?'), jawab kondisi kabar Anda secara ringkas dan wajar. JANGAN melompat langsung membahas topik masalah (seperti rokok atau masalah pribadi) sebelum konselor mulai mengeksplorasinya.
+4. Bicaralah wajar dan ringkas (1–3 kalimat) dengan gaya lisan santai sesuai karakter persona Anda.
 """.strip()
 
     last_exc: Exception | None = None

@@ -29,7 +29,7 @@ export default function DashboardLayout({
         }`}
       >
         <div className="flex flex-col w-full">
-          <div className="max-w-6xl mx-auto w-full px-5 py-5 flex flex-col gap-5">
+          <div className="max-w-[1400px] mx-auto w-full p-4 md:p-6 lg:p-8 flex flex-col gap-6">
             {children}
           </div>
         </div>

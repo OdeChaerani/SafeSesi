@@ -3,7 +3,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, patch
 from fastapi import HTTPException
 
-from api.v1.sessions import get_session_detail, send_counselor_turn
+from api.sessions import get_session_detail, send_counselor_turn
 from schemas.session import CreateTurnRequest
 from tests.base import BaseTestCase
 
@@ -57,8 +57,8 @@ class TestSecurity(BaseTestCase):
         self.assertEqual(ctx.exception.status_code, 403)
         self.assertIn("izin", ctx.exception.detail)
 
-    @patch("api.v1.sessions.get_session_turns")
-    @patch("api.v1.sessions.get_latest_topic_notes")
+    @patch("api.sessions.get_session_turns")
+    @patch("api.sessions.get_latest_topic_notes")
     def test_lecturer_review_access_permitted(self, mock_notes, mock_turns):
         """Memastikan Dosen/Admin diizinkan meninjau sesi mahasiswa (Review access)."""
         self.mock_conn.fetchrow.return_value = self.session_a

@@ -1,16 +1,24 @@
+import { useLocation, useNavigate } from 'react-router-dom'
+
 const NAV_ITEMS = [
-  { id: 'beranda', label: 'Beranda', icon: 'home' },
-  { id: 'latihan-mandiri', label: 'Latihan Mandiri', icon: 'psychology' },
-  { id: 'kelas-saya', label: 'Kelas', icon: 'school' },
-  { id: 'riwayat', label: 'Riwayat', icon: 'history' },
+  { id: 'beranda', label: 'Beranda', icon: 'home', path: '/beranda' },
+  {
+    id: 'latihan-mandiri',
+    label: 'Latihan Mandiri',
+    icon: 'psychology',
+    path: '/latihan-mandiri',
+  },
+  { id: 'kelas-saya', label: 'Kelas', icon: 'school', path: '/kelas-saya' },
+  { id: 'riwayat', label: 'Riwayat', icon: 'history', path: '/riwayat' },
 ]
 
 export default function Sidebar({
-  activeTab = 'beranda',
-  onSelectTab,
   isOpen = true,
   onLogout,
 }) {
+  const location = useLocation()
+  const navigate = useNavigate()
+
   return (
     <aside
       className={`fixed left-0 top-14 bottom-0 w-60 bg-surface-container-low shadow-xs z-40 flex flex-col justify-between p-3 border-r border-[#d3daea] transition-transform duration-300 ease-in-out ${
@@ -21,12 +29,16 @@ export default function Sidebar({
       <div className="flex flex-col gap-2">
         <nav className="flex flex-col gap-1">
           {NAV_ITEMS.map((item) => {
-            const isActive = activeTab === item.id
+            const isActive =
+              item.path === '/beranda'
+                ? location.pathname === '/' || location.pathname === '/beranda'
+                : location.pathname.startsWith(item.path)
+
             return (
               <button
                 key={item.id}
                 type="button"
-                onClick={() => onSelectTab && onSelectTab(item.id)}
+                onClick={() => navigate(item.path)}
                 aria-current={isActive ? 'page' : undefined}
                 className={`flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all text-left text-xs md:text-sm cursor-pointer ${
                   isActive

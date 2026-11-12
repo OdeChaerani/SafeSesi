@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi import HTTPException
 
-from api.v1.sessions import send_counselor_turn
+from api.sessions import send_counselor_turn
 from core.errors import LLMServiceError
 from schemas.client_state import ClientState
 from schemas.session import CreateTurnRequest
@@ -36,6 +36,7 @@ class TestTurns(BaseTestCase):
         self.assertIs(lock1, lock2)
         self.assertIsNot(lock1, lock3)
 
+    @patch("services.simulation.orchestrator.get_settings")
     @patch("services.simulation.orchestrator.get_latest_client_state")
     @patch("services.simulation.orchestrator.get_latest_topic_notes")
     @patch("services.simulation.orchestrator.get_session_turns")
@@ -50,8 +51,14 @@ class TestTurns(BaseTestCase):
         mock_get_turns,
         mock_get_notes,
         mock_get_state,
+        mock_get_settings,
     ):
-        """Memastikan shortcut sapaan langsung membalas sapaan tanpa memanggil LLM."""
+        """Memastikan shortcut sapaan langsung membalas sapaan tanpa memanggil LLM jika diaktifkan."""
+        mock_cfg = MagicMock()
+        mock_cfg.GREETING_SHORTCUT_ENABLED = True
+        mock_cfg.DEBUG_INCLUDE_INTERNAL = False
+        mock_get_settings.return_value = mock_cfg
+
         self.mock_conn.fetchrow.return_value = self.mock_session
         mock_get_state.return_value = self.mock_session["scenario_snapshot"][
             "initial_state"
@@ -78,6 +85,70 @@ class TestTurns(BaseTestCase):
         self.assertIsNone(res.internal_state)
         self.assertEqual(mock_save_turn.call_count, 2)
         mock_save_state.assert_called_once()
+
+    @patch("services.simulation.orchestrator.get_settings")
+    @patch("services.simulation.orchestrator.update_client_state_llm")
+    @patch("services.simulation.orchestrator.generate_client_response_llm")
+    @patch("services.simulation.orchestrator.update_topic_notes_llm")
+    @patch("services.simulation.orchestrator.get_latest_client_state")
+    @patch("services.simulation.orchestrator.get_latest_topic_notes")
+    @patch("services.simulation.orchestrator.get_session_turns")
+    @patch("services.simulation.orchestrator.save_turn")
+    @patch("services.simulation.orchestrator.save_client_state")
+    @patch("services.simulation.orchestrator.save_topic_note")
+    @patch("services.simulation.orchestrator.get_next_turn_no")
+    def test_greeting_shortcut_only_on_first_turn(
+        self,
+        mock_get_next_no,
+        mock_save_note,
+        mock_save_state,
+        mock_save_turn,
+        mock_get_turns,
+        mock_get_notes,
+        mock_get_state,
+        mock_notes_llm,
+        mock_resp_llm,
+        mock_state_llm,
+        mock_get_settings,
+    ):
+        """Memastikan sapaan/pertanyaan kabar di turn lanjutan (turn > 1) diteruskan ke LLM, bukan mengulang template."""
+        mock_cfg = MagicMock()
+        mock_cfg.GREETING_SHORTCUT_ENABLED = True
+        mock_cfg.DEBUG_INCLUDE_INTERNAL = False
+        mock_cfg.NOTES_UPDATE_MODE = "inline"
+        mock_get_settings.return_value = mock_cfg
+
+        self.mock_conn.fetchrow.return_value = self.mock_session
+        mock_get_state.return_value = self.mock_session["scenario_snapshot"][
+            "initial_state"
+        ]
+        mock_get_notes.return_value = []
+        # Sudah ada riwayat dialog sebelumnya (bukan pembuka sesi)
+        mock_get_turns.return_value = [
+            {"id": 1, "turn_no": 1, "speaker": "counselor", "content": "Halo"},
+            {"id": 2, "turn_no": 2, "speaker": "client", "content": "Halo selamat pagi..."},
+        ]
+        mock_get_next_no.return_value = 3
+        mock_save_turn.side_effect = [3, 4]
+        mock_state_llm.return_value = ClientState.model_validate(
+            self.mock_session["scenario_snapshot"]["initial_state"]
+        )
+        mock_resp_llm.return_value = "Kabar saya baik, Mas."
+        mock_notes_llm.return_value = []
+
+        payload = CreateTurnRequest(content="gimana kabarnya mas?")
+        res = self.run_async(
+            send_counselor_turn(
+                session_id=100,
+                payload=payload,
+                user=self.mock_user,
+                conn=self.mock_conn,
+            )
+        )
+
+        self.assertEqual(res.turn_no, 4)
+        self.assertEqual(res.content, "Kabar saya baik, Mas.")
+        mock_resp_llm.assert_called_once()
 
     @patch("services.simulation.orchestrator.update_client_state_llm")
     @patch("services.simulation.orchestrator.generate_client_response_llm")
@@ -158,7 +229,6 @@ class TestTurns(BaseTestCase):
         mock_resp_llm.assert_called_once()
         self.assertEqual(mock_save_turn.call_count, 2)
         mock_save_state.assert_called_once()
-        mock_save_note.assert_called_once()
 
     def test_responder_code_level_boundary_guarded(self):
         """Memastikan responder.py memfilter hidden facts menjadi kosong jika disclosure_level == 'guarded'."""
@@ -188,7 +258,7 @@ class TestTurns(BaseTestCase):
             )
 
             sent_prompt = mock_llm.generate_text.call_args.kwargs["user_prompt"]
-            self.assertIn("Keterbukaan masih 'guarded'", sent_prompt)
+            # Fakta tanpa min_disclosure_level memakai default 'medium' -> tertahan saat 'guarded'
             self.assertNotIn("Fakta sensitif", sent_prompt)
 
     def test_turn_fails_on_completed_session(self):

@@ -5,7 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator
 
 from schemas.client_state import ClientState
-from schemas.scenario import ScenarioSnapshot
+from schemas.scenario import PublicScenarioInfo
 
 
 class CreateSessionRequest(BaseModel):
@@ -25,7 +25,9 @@ class SessionResponse(BaseModel):
     scenario_id: int
     class_id: int | None = None
     parent_session_id: int | None = None
-    scenario_snapshot: ScenarioSnapshot
+    # Hanya ringkasan publik; scenario_snapshot (hidden facts, persona, kasus,
+    # kondisi awal) tidak pernah dikirim ke frontend.
+    scenario: PublicScenarioInfo
     status: str
     started_at: datetime
     ended_at: datetime | None = None

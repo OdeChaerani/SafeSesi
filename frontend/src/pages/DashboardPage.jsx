@@ -1,19 +1,25 @@
+import { useNavigate } from 'react-router-dom'
 import WelcomeBanner from '../components/dashboard/WelcomeBanner'
 import StatCards from '../components/dashboard/StatCards'
 import ClassActivities from '../components/dashboard/ClassActivities'
 import RecentHistory from '../components/dashboard/RecentHistory'
 
 export default function DashboardPage({ onStartExercise }) {
+  const navigate = useNavigate()
+
   const handleStartExercise = (activity) => {
     if (onStartExercise) {
       onStartExercise(activity)
     } else {
-      console.log('Mulai latihan untuk:', activity.title)
+      const scenarioId = activity.scenarioId || activity.id || 1
+      navigate(`/latihan-mandiri/${scenarioId}/briefing`, {
+        state: { scenario: activity },
+      })
     }
   }
 
   const handleViewAllHistory = () => {
-    console.log('Lihat semua riwayat')
+    navigate('/riwayat')
   }
 
   const handleHistoryAction = (item) => {
