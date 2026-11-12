@@ -80,3 +80,14 @@ def enforce_disclosure_floor(previous_level: Any, proposed_level: Any) -> str:
     if new_rank is None or new_rank < prev_rank:
         return previous_level
     return proposed_level
+
+
+def resolve_disclosure(previous_level: Any, proposed_level: Any, discord_present: bool) -> str:
+    """Tingkat Disclosure final untuk state baru.
+
+    - Discord tampak: tingkat sebelumnya dipertahankan (tidak naik, tidak turun).
+    - Selain itu: tidak pernah turun (enforce_disclosure_floor).
+    """
+    if discord_present and disclosure_rank(previous_level) is not None:
+        return previous_level
+    return enforce_disclosure_floor(previous_level, proposed_level)

@@ -33,6 +33,29 @@ from services.simulation.orchestrator import get_session_lock, process_turn
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
 
+def is_reviewer(user: dict[str, Any]) -> bool:
+    return user.get("role") in ("admin", "lecturer")
+
+
+def student_visible_topics(topic_notes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Topik yang boleh dilihat mahasiswa: hanya yang deskripsi terakhirnya tidak kosong.
+
+    Topik kosong dibuang seluruhnya karena namanya bisa membocorkan judul fakta tersembunyi.
+    """
+    return [
+        {"name": note.get("topic_name"), "description": note.get("description")}
+        for note in topic_notes
+        if (note.get("description") or "").strip()
+    ]
+
+
+async def topics_for_viewer(
+    conn: asyncpg.Connection, session_id: int, user: dict[str, Any]
+) -> list[dict[str, Any]]:
+    notes = await get_latest_topic_notes(conn, session_id)
+    return notes if is_reviewer(user) else student_visible_topics(notes)
+
+
 def to_public_session(session: dict[str, Any]) -> dict[str, Any]:
     """Data sesi untuk frontend: scenario_snapshot diganti ringkasan publik skenario."""
     public = {k: v for k, v in session.items() if k != "scenario_snapshot"}
@@ -154,7 +177,9 @@ async def get_session_detail(
 ) -> dict[str, Any]:
     """Mengambil detail sesi konseling dan riwayat turns.
 
-    Topik pembahasan (memuat judul hidden facts) hanya untuk dosen/admin.
+    - topics (topik sesi ini, memuat judul hidden facts): hanya untuk dosen/admin.
+    - previous_topics: catatan topik sesi induk untuk sesi lanjutan (BRD 6.1.2).
+      Mahasiswa hanya menerima topik berdeskripsi; sesi tanpa induk -> [].
     """
     session = await get_session_by_id(conn, session_id)
     if not session:
@@ -167,9 +192,40 @@ async def get_session_detail(
 
     detail = to_public_session(session)
     detail["turns"] = await get_session_turns(conn, session_id)
-    if user.get("role") in ("admin", "lecturer"):
+    if is_reviewer(user):
         detail["topics"] = await get_latest_topic_notes(conn, session_id)
+
+    parent_id = session.get("parent_session_id")
+    detail["previous_topics"] = (
+        await topics_for_viewer(conn, parent_id, user) if parent_id else []
+    )
     return detail
+
+
+@router.get("/{session_id}/briefing-topics")
+async def get_briefing_topics(
+    session_id: int,
+    user: dict[str, Any] = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+) -> dict[str, Any]:
+    """Catatan topik sesi yang akan dilanjutkan, untuk halaman briefing mode continue.
+
+    Dipanggil sebelum sesi lanjutan dibuat; session_id adalah calon parent_session_id.
+    Mahasiswa hanya menerima topik yang deskripsi terakhirnya tidak kosong.
+    """
+    session = await get_session_by_id(conn, session_id)
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Sesi dengan ID {session_id} tidak ditemukan.",
+        )
+
+    verify_session_ownership(session, user)
+
+    return {
+        "session_id": session_id,
+        "topics": await topics_for_viewer(conn, session_id, user),
+    }
 
 
 @router.post("/{session_id}/turns", response_model=TurnResponse)

@@ -7,7 +7,7 @@ from core.config import get_settings
 from prompts.prompt_a_state import PROMPT_A_VERSION, SYSTEM_INSTRUCTION_A
 from schemas.client_state import ClientState
 from services.llm.gemini_client import get_gemini_client
-from services.simulation.disclosure import enforce_disclosure_floor
+from services.simulation.disclosure import resolve_disclosure
 
 logger = logging.getLogger("safesesi.simulation.state")
 
@@ -93,15 +93,25 @@ Keluarkan JSON yang mematuhi skema ClientState.
 
 
 def _apply_disclosure_floor(previous_level: Any, new_state: ClientState) -> ClientState:
-    """Disclosure tidak pernah turun (BRD Lampiran 2), ditegakkan di kode, bukan oleh LLM."""
-    floored = enforce_disclosure_floor(previous_level, new_state.disclosure_level)
-    if floored == new_state.disclosure_level:
-        return new_state
-    logger.warning(
-        "State Updater mengembalikan disclosure_level %r di bawah tingkat sebelumnya %r; "
-        "dipertahankan %r.",
-        new_state.disclosure_level,
-        previous_level,
-        floored,
+    """Aturan Disclosure BRD Lampiran 2, ditegakkan di kode, bukan oleh LLM.
+
+    Disclosure tidak pernah turun; saat Discord tampak, Disclosure tetap pada tingkat sebelumnya.
+    """
+    resolved = resolve_disclosure(
+        previous_level, new_state.disclosure_level, new_state.discord_present
     )
-    return new_state.model_copy(update={"disclosure_level": floored})
+    if resolved == new_state.disclosure_level:
+        return new_state
+    reason = (
+        "Discord tampak, tingkat dikunci"
+        if new_state.discord_present
+        else "di bawah tingkat sebelumnya"
+    )
+    logger.warning(
+        "State Updater mengembalikan disclosure_level %r (%s; sebelumnya %r); dipakai %r.",
+        new_state.disclosure_level,
+        reason,
+        previous_level,
+        resolved,
+    )
+    return new_state.model_copy(update={"disclosure_level": resolved})

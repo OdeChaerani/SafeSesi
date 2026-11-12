@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import AudioCheckBar from '../components/briefing/AudioCheckBar'
 import BriefingHeader from '../components/briefing/BriefingHeader'
@@ -48,8 +48,8 @@ export default function BriefingPage({
     }
   }
 
-  // Data topik simulasi sebelumnya untuk mode continue
-  const previousTopics = [
+  // Contoh topik sesi sebelumnya, dipakai hanya bila backend tidak dapat dihubungi
+  const sampleTopics = [
     {
       id: 1,
       title: 'Eksplorasi Keluhan Utama',
@@ -75,6 +75,41 @@ export default function BriefingPage({
       isLastActive: true,
     },
   ]
+
+  // Topik sesi induk dari backend (hanya topik yang sudah memiliki catatan)
+  const parentSessionId =
+    scenario.parentSessionId || scenario.last_completed_session_id || null
+  const [fetchedTopics, setFetchedTopics] = useState(null)
+
+  useEffect(() => {
+    if (selectedMode !== 'continue' || !parentSessionId) return undefined
+    let isMounted = true
+    fetch(
+      `http://localhost:8000/api/v1/sessions/${parentSessionId}/briefing-topics`,
+      { headers: { 'X-Dev-User-Id': '1' } }
+    )
+      .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
+      .then((data) => {
+        if (!isMounted) return
+        const topics = Array.isArray(data.topics) ? data.topics : []
+        setFetchedTopics(
+          topics.map((t, idx) => ({
+            id: idx + 1,
+            title: t.name,
+            response: t.description,
+            isLastActive: idx === topics.length - 1,
+          }))
+        )
+      })
+      .catch((err) => {
+        console.warn('Gagal memuat topik sesi sebelumnya, memakai contoh lokal:', err)
+      })
+    return () => {
+      isMounted = false
+    }
+  }, [selectedMode, parentSessionId])
+
+  const previousTopics = fetchedTopics ?? sampleTopics
 
   const handleStart = async () => {
     setIsStarting(true)

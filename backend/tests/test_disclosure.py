@@ -12,6 +12,7 @@ from schemas.session import CreateSessionRequest, CreateTurnRequest, SessionResp
 from services.simulation.disclosure import (
     enforce_disclosure_floor,
     filter_hidden_facts,
+    resolve_disclosure,
     revealed_fact_codes,
 )
 from services.simulation.responder import generate_client_response_llm
@@ -151,6 +152,12 @@ class TestDisclosureFilterPure(BaseTestCase):
         self.assertEqual(enforce_disclosure_floor("high", "high"), "high")
         self.assertEqual(enforce_disclosure_floor("medium", "tidak-valid"), "medium")
 
+    def test_resolve_disclosure_locks_level_during_discord(self):
+        self.assertEqual(resolve_disclosure("medium", "high", discord_present=True), "medium")
+        self.assertEqual(resolve_disclosure("medium", "guarded", discord_present=True), "medium")
+        self.assertEqual(resolve_disclosure("medium", "high", discord_present=False), "high")
+        self.assertEqual(resolve_disclosure("high", "guarded", discord_present=False), "high")
+
 
 class TestResponderHiddenFacts(BaseTestCase):
     """Peran B: isi prompt mengikuti filter fakta tersembunyi."""
@@ -210,10 +217,10 @@ class TestResponderHiddenFacts(BaseTestCase):
 class TestStateUpdaterDisclosureFloor(BaseTestCase):
     """Peran A: disclosure tidak turun walau LLM mengembalikan tingkat lebih rendah."""
 
-    def _run(self, previous: str, llm_level: str) -> ClientState:
+    def _run(self, previous: str, llm_level: str, discord: bool = False) -> ClientState:
         snapshot = self.get_sample_snapshot()
         current = {**snapshot["initial_state"], "disclosure_level": previous}
-        fake_llm = make_fake_llm(state=make_state(llm_level, discord=True))
+        fake_llm = make_fake_llm(state=make_state(llm_level, discord=discord))
         with patch("services.simulation.state_updater.get_gemini_client", return_value=fake_llm):
             return self.run_async(
                 update_client_state_llm(
@@ -229,12 +236,29 @@ class TestStateUpdaterDisclosureFloor(BaseTestCase):
         with self.assertLogs("safesesi.simulation.state", level="WARNING") as logs:
             result = self._run(previous="medium", llm_level="guarded")
         self.assertEqual(result.disclosure_level, "medium")
-        self.assertTrue(result.discord_present)  # field lain dari LLM tetap dipakai
+        self.assertEqual(result.emotion_type, "Cemas")  # field lain dari LLM tetap dipakai
         self.assertTrue(any("guarded" in line for line in logs.output))
 
     def test_disclosure_can_rise(self):
         result = self._run(previous="medium", llm_level="high")
         self.assertEqual(result.disclosure_level, "high")
+
+    def test_discord_does_not_raise_disclosure(self):
+        with self.assertLogs("safesesi.simulation.state", level="WARNING") as logs:
+            result = self._run(previous="medium", llm_level="high", discord=True)
+        self.assertEqual(result.disclosure_level, "medium")
+        self.assertTrue(result.discord_present)
+        self.assertTrue(any("Discord" in line for line in logs.output))
+
+    def test_discord_does_not_lower_disclosure(self):
+        result = self._run(previous="medium", llm_level="guarded", discord=True)
+        self.assertEqual(result.disclosure_level, "medium")
+
+    def test_discord_keeps_same_level_without_warning(self):
+        with patch("services.simulation.state_updater.logger") as mock_logger:
+            result = self._run(previous="high", llm_level="high", discord=True)
+        self.assertEqual(result.disclosure_level, "high")
+        mock_logger.warning.assert_not_called()
 
 
 class TestFirstTurnMediumScenario(BaseTestCase):
