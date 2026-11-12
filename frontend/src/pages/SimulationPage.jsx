@@ -4,6 +4,7 @@ import SimulationHeader from '../components/simulation/SimulationHeader'
 import VirtualClientStage from '../components/simulation/VirtualClientStage'
 import TranscriptPanel from '../components/simulation/TranscriptPanel'
 import { FALLBACK_SCENARIOS } from '../data/fallbackScenarios'
+import { apiUrl } from '../config'
 
 export default function SimulationPage({
   scenario: propsScenario,
@@ -151,7 +152,7 @@ export default function SimulationPage({
   useEffect(() => {
     let isMounted = true
     if (currentSessionId) {
-      fetch(`http://localhost:8000/api/v1/sessions/${currentSessionId}`, {
+      fetch(apiUrl(`/api/v1/sessions/${currentSessionId}`), {
         headers: {
           'X-Dev-User-Id': '1',
         },
@@ -258,7 +259,7 @@ export default function SimulationPage({
     // 100% LLM: Hubungkan langsung ke endpoint /turns di backend
     try {
       const res = await fetch(
-        `http://localhost:8000/api/v1/sessions/${currentSessionId}/turns`,
+        apiUrl(`/api/v1/sessions/${currentSessionId}/turns`),
         {
           method: 'POST',
           headers: {
@@ -325,7 +326,7 @@ export default function SimulationPage({
       if (currentSessionId) {
         try {
           await fetch(
-            `http://localhost:8000/api/v1/sessions/${currentSessionId}/end`,
+            apiUrl(`/api/v1/sessions/${currentSessionId}/end`),
             {
               method: 'POST',
               headers: {

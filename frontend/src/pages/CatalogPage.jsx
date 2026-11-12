@@ -5,6 +5,7 @@ import CatalogFilters from '../components/catalog/CatalogFilters'
 import CatalogHeader from '../components/catalog/CatalogHeader'
 import ScenarioGrid from '../components/catalog/ScenarioGrid'
 import { FALLBACK_SCENARIOS } from '../data/fallbackScenarios'
+import { apiUrl } from '../config'
 
 export default function CatalogPage({ onStartExercise }) {
   const navigate = useNavigate()
@@ -39,7 +40,7 @@ export default function CatalogPage({ onStartExercise }) {
         if (statusFilter !== 'all') queryParams.set('status', statusFilter)
 
         const res = await fetch(
-          `http://localhost:8000/api/v1/scenarios/catalog?${queryParams.toString()}`,
+          apiUrl(`/api/v1/scenarios/catalog?${queryParams.toString()}`),
           {
             headers: {
               'X-Dev-User-Id': '1', // Peneliti default dev user

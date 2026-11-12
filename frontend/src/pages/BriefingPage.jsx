@@ -6,6 +6,7 @@ import ClientProfileCard from '../components/briefing/ClientProfileCard'
 import SessionModeSelector from '../components/briefing/SessionModeSelector'
 import SessionTermsCard from '../components/briefing/SessionTermsCard'
 import { FALLBACK_SCENARIOS } from '../data/fallbackScenarios'
+import { apiUrl } from '../config'
 
 export default function BriefingPage({
   scenario: propsScenario,
@@ -85,7 +86,7 @@ export default function BriefingPage({
     if (selectedMode !== 'continue' || !parentSessionId) return undefined
     let isMounted = true
     fetch(
-      `http://localhost:8000/api/v1/sessions/${parentSessionId}/briefing-topics`,
+      apiUrl(`/api/v1/sessions/${parentSessionId}/briefing-topics`),
       { headers: { 'X-Dev-User-Id': '1' } }
     )
       .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
@@ -120,7 +121,7 @@ export default function BriefingPage({
           : null
 
       // Hubungkan ke endpoint POST /api/v1/sessions
-      const res = await fetch('http://localhost:8000/api/v1/sessions', {
+      const res = await fetch(apiUrl('/api/v1/sessions'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
