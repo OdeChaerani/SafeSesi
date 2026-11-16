@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import time
+from contextvars import ContextVar
 from typing import Any, TypeVar
 from google import genai
 from google.genai import errors as genai_errors
@@ -17,7 +18,32 @@ logger = logging.getLogger("safesesi.llm")
 
 T = TypeVar("T", bound=BaseModel)
 
-ROLE_NAMES = {"A": "Peran A (State Updater)", "B": "Peran B (Client Responder)", "C": "Peran C (Notes Updater)"}
+ROLE_NAMES = {
+    "A": "Peran A (State Updater)",
+    "B": "Peran B (Client Responder)",
+    "C": "Peran C (Notes Updater)",
+    "state_decision": "State Decision Agent (Peran A, mode split)",
+    "state_detail": "State Detail Agent (Peran A, mode split)",
+}
+
+# Penampung token per peran untuk satu giliran: {peran: {"input": n, "output": n}}.
+# Dict yang sama terlihat oleh tugas background karena create_task menyalin konteks.
+_usage_sink: ContextVar[dict[str, dict[str, int]] | None] = ContextVar("llm_usage_sink", default=None)
+
+
+def track_usage(sink: dict[str, dict[str, int]]) -> None:
+    """Mulai mencatat token panggilan Gemini (per peran) ke sink pada konteks saat ini."""
+    _usage_sink.set(sink)
+
+
+def _record_usage(role: str | None, usage: Any) -> None:
+    sink = _usage_sink.get()
+    if sink is None or not role:
+        return
+    entry = sink.setdefault(role, {"input": 0, "output": 0})
+    for key, attr in (("input", "prompt_token_count"), ("output", "candidates_token_count")):
+        value = getattr(usage, attr, None)
+        entry[key] += value if isinstance(value, int) else 0
 
 
 class LLMConfigRejected(LLMServiceError):
@@ -86,6 +112,7 @@ class GeminiAsyncClient:
             raise
         elapsed_ms = int((time.perf_counter() - t_start) * 1000)
         usage = response.usage_metadata
+        _record_usage(role, usage)
         logger.debug(
             "Gemini %s: %d ms | prompt %s tok, cached %s, thoughts %s, output %s",
             model,
@@ -165,9 +192,16 @@ class GeminiAsyncClient:
 
 
 def role_llm_configs(settings: Any) -> dict[str, tuple[str, int | None]]:
-    """Model dan thinking budget per peran dari config."""
+    """Model dan thinking budget per peran yang dipakai STATE_UPDATE_MODE aktif."""
+    if settings.STATE_UPDATE_MODE == "split":
+        state_roles = {
+            "state_decision": (settings.GEMINI_MODEL_STATE_DECISION, settings.GEMINI_THINKING_BUDGET_STATE_DECISION),
+            "state_detail": (settings.GEMINI_MODEL_STATE_DETAIL, settings.GEMINI_THINKING_BUDGET_STATE_DETAIL),
+        }
+    else:
+        state_roles = {"A": (settings.GEMINI_MODEL_STATE, settings.GEMINI_THINKING_BUDGET_STATE)}
     return {
-        "A": (settings.GEMINI_MODEL_STATE, settings.GEMINI_THINKING_BUDGET_STATE),
+        **state_roles,
         "B": (settings.GEMINI_MODEL_RESPONDER, settings.GEMINI_THINKING_BUDGET_RESPONDER),
         "C": (settings.GEMINI_MODEL_NOTES, settings.GEMINI_THINKING_BUDGET_NOTES),
     }

@@ -20,8 +20,12 @@ async def generate_client_response_llm(
     transcript_history: list[dict[str, Any]],
     counselor_utterance: str,
     hidden_facts: list[dict[str, Any]],
+    decision_only: bool = False,
 ) -> str:
     """Peran B: Client Responder (menghasilkan ucapan respon klien virtual).
+
+    decision_only=True (mode split): new_state berasal dari State Decision Agent; emosi ditulis
+    tanpa emotion_cause (penyebabnya belum diperbarui pada giliran ini).
 
     PEMBATASAN DI LEVEL KODE (lihat services/simulation/disclosure.py):
     Fakta masuk prompt hanya jika Disclosure saat ini >= tingkat minimal fakta,
@@ -60,6 +64,12 @@ async def generate_client_response_llm(
             "Karena Anda sudah dewasa/lebih berumur, bicaralah secara langsung dan sopan TANPA embel-embel panggilan (JANGAN memanggil 'Kak', dan JANGAN menebak 'Mas/Mbak/Pak/Bu'). Cukup jawab langsung seperti: 'Halo, selamat pagi', 'Kabar baik, terima kasih'."
         )
 
+    emotion_line = (
+        f"- Emosi: {state_dict.get('emotion_type')}"
+        if decision_only
+        else f"- Emosi: {state_dict.get('emotion_type')} ({state_dict.get('emotion_cause')})"
+    )
+
     # Urutan: bagian statis per sesi dulu (konteks, persona, kasus, petunjuk), lalu bagian
     # yang berubah tiap giliran, riwayat & ucapan terkini di akhir (prefix stabil untuk caching).
     user_prompt = f"""
@@ -91,7 +101,7 @@ Anda sedang berada dalam sesi konseling tatap maya (online video call) resmi yan
 {json.dumps(filtered_hidden_facts, indent=2, ensure_ascii=False, default=str) if filtered_hidden_facts else "[] (Belum ada informasi tersembunyi yang boleh Anda ungkapkan saat ini)"}
 
 ### Kondisi Emosi & Keterbukaan Anda Saat Ini:
-- Emosi: {state_dict.get('emotion_type')} ({state_dict.get('emotion_cause')})
+{emotion_line}
 - Tingkat Keterbukaan: {state_dict.get('disclosure_level')}
 - Ambivalensi: {state_dict.get('ambivalence_lean')} (Ingin Berubah: {state_dict.get('reasons_to_change')} | Bertahan: {state_dict.get('reasons_to_maintain')})
 - Ketegangan Hubungan (Discord): {'ADA' if state_dict.get('discord_present') else 'Tidak Tampak'} {f"- Catatan: {state_dict.get('discord_context')}" if state_dict.get('discord_present') else ''}

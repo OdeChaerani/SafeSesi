@@ -59,3 +59,29 @@ async def get_latest_client_state(
     )
     return dict(row) if row else None
 
+
+
+async def update_client_state_details(
+    conn: asyncpg.Connection, state_id: int, details: dict[str, Any]
+) -> None:
+    """Memperbarui field deskriptif satu baris client_state_log (State Detail Agent, mode split).
+
+    Kolom keputusan (disclosure_level, discord_present, ambivalence_lean) tidak disentuh.
+    """
+    await conn.execute(
+        """
+        UPDATE client_state_log
+        SET emotion_type = $2, emotion_cause = $3, disclosure_trigger = $4,
+            reasons_to_change = $5, reasons_to_maintain = $6,
+            discord_context = $7, discord_response = $8
+        WHERE id = $1
+        """,
+        state_id,
+        details["emotion_type"],
+        details.get("emotion_cause"),
+        details.get("disclosure_trigger"),
+        details.get("reasons_to_change"),
+        details.get("reasons_to_maintain"),
+        details.get("discord_context"),
+        details.get("discord_response"),
+    )

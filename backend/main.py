@@ -20,6 +20,9 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     datefmt="%H:%M:%S",
 )
+# Log simulasi cukup baris timing per giliran: senyapkan log request HTTP dan SDK Gemini.
+for _noisy in ("httpx", "google_genai", "uvicorn.access"):
+    logging.getLogger(_noisy).setLevel(logging.WARNING)
 logger = logging.getLogger("safesesi")
 
 
