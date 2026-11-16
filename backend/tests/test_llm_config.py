@@ -33,16 +33,27 @@ class TestThinkingConfigSettings(unittest.TestCase):
             (s.GEMINI_MODEL_STATE, s.GEMINI_THINKING_BUDGET_STATE),
             ("gemini-3.8-flash", 0),
         )
+        # Peran B dan C memakai model murah; Peran A tetap 3.8-flash (hasil uji replay)
         self.assertEqual(
             (s.GEMINI_MODEL_RESPONDER, s.GEMINI_THINKING_BUDGET_RESPONDER),
-            ("gemini-3.8-flash", 0),
+            ("gemini-3.1-flash-lite", None),
         )
-        # Peran C: flash-lite menolak budget 0, jadi budget tidak dikirim
         self.assertEqual(
             (s.GEMINI_MODEL_NOTES, s.GEMINI_THINKING_BUDGET_NOTES),
-            ("gemini-3.5-flash-lite", None),
+            ("gemini-3.1-flash-lite", None),
         )
         self.assertTrue(s.GEMINI_VALIDATE_ON_STARTUP)
+
+    def test_only_deprecated_models_are_upgraded(self):
+        s = Settings(
+            _env_file=None,
+            GEMINI_MODEL_STATE="gemini-2.5-flash",
+            GEMINI_MODEL_RESPONDER="gemini-2.5-pro",
+            GEMINI_MODEL_NOTES="gemini-2.5-flash-lite",
+        )
+        self.assertEqual(s.GEMINI_MODEL_STATE, "gemini-3.8-flash")
+        self.assertEqual(s.GEMINI_MODEL_RESPONDER, "gemini-3.8-flash")
+        self.assertEqual(s.GEMINI_MODEL_NOTES, "gemini-2.5-flash-lite")
 
     def test_budget_can_be_unset_or_custom(self):
         s = Settings(

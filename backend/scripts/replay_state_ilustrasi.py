@@ -12,6 +12,8 @@ Pemakaian (dari folder backend/):
   # 2) Replay. Model ditulis "nama" atau "nama:budget" (budget: angka atau none)
   python scripts/replay_state_ilustrasi.py run --models gemini-3.8-flash:0 gemini-3.5-flash-lite:none
   python scripts/replay_state_ilustrasi.py run --runs 3 --sessions SS-NAD-01-S01 --show-side-by-side
+  # 3) Mode split: State Decision Agent saja (dengan/tanpa alasan, panjang riwayat)
+  python scripts/replay_state_ilustrasi.py run --mode split --decision-variant no_reason --history-turns 8
 """
 
 from __future__ import annotations
@@ -313,21 +315,59 @@ def parse_model_arg(text: str) -> tuple[str, int | None]:
     return name, None if budget.strip().lower() in ("none", "") else int(budget)
 
 
+class RateLimiter:
+    """Menjaga jarak antarpanggilan Gemini (kuota RPM). Jeda terjadi sebelum pengukuran waktu."""
+
+    def __init__(self, rpm: float) -> None:
+        self.interval = 60.0 / rpm if rpm else 0.0
+        self._next = 0.0
+        self._lock = asyncio.Lock()
+
+    async def wait(self) -> None:
+        async with self._lock:
+            now = time.monotonic()
+            if self._next > now:
+                await asyncio.sleep(self._next - now)
+            self._next = max(now, self._next) + self.interval
+
+
 class RecordingLLM:
     """Membungkus client Gemini: mencatat keluaran mentah Peran A sebelum aturan di kode."""
+
+    TRANSIENT = ("429", "503", "RESOURCE_EXHAUSTED", "UNAVAILABLE")
 
     def __init__(self, inner: Any) -> None:
         self.inner = inner
         self.last_raw: Any = None
+        self.last_ms: float = 0.0
 
     async def generate_json(self, **kwargs: Any) -> Any:
-        result = await self.inner.generate_json(**kwargs)
-        self.last_raw = result
-        return result
+        """Retry gangguan sementara Gemini (kuota/permintaan ramai) dengan jeda; last_ms hanya
+        durasi panggilan yang berhasil, jadi jeda retry tidak masuk ke angka durasi."""
+        for attempt in range(6):
+            t0 = time.perf_counter()
+            try:
+                result = await self.inner.generate_json(**kwargs)
+            except Exception as exc:
+                if attempt == 5 or not any(code in str(exc) for code in self.TRANSIENT):
+                    raise
+                print(f"    gangguan sementara Gemini, coba lagi dalam 30 dtk: {str(exc)[:80]}", flush=True)
+                await asyncio.sleep(30)
+                continue
+            self.last_ms = (time.perf_counter() - t0) * 1000
+            self.last_raw = result
+            return result
 
 
-async def replay_session(session: dict[str, Any], scenario: dict[str, Any], parent_turns: list[dict[str, Any]]) -> dict[str, Any]:
-    from services.llm.gemini_client import get_gemini_client
+async def replay_session(
+    session: dict[str, Any], scenario: dict[str, Any], parent_turns: list[dict[str, Any]], cfg: dict[str, Any]
+) -> dict[str, Any]:
+    """cfg: mode (combined|split), decision_variant (reason|no_reason), history_turns.
+
+    Mode split hanya menjalankan State Decision Agent; field deskriptif state diteruskan dari
+    kondisi awal (State Detail Agent tidak ikut di-replay).
+    """
+    from services.llm.gemini_client import get_gemini_client, track_usage
     from services.simulation import state_updater
 
     recorder = RecordingLLM(get_gemini_client())
@@ -337,23 +377,48 @@ async def replay_session(session: dict[str, Any], scenario: dict[str, Any], pare
     results = []
     for turn in session["turns"]:
         topic_notes = [{"topic_name": name, "description": desc} for name, desc in notes.items()]
-        t0 = time.perf_counter()
+        usage: dict[str, dict[str, int]] = {}
+        track_usage(usage)
+        await cfg["limiter"].wait()
         # recorder dipasang per panggilan: state_updater memanggil get_gemini_client() di dalam fungsi
         state_updater.get_gemini_client = lambda: recorder
-        new_state = await state_updater.update_client_state_llm(
-            counselor_utterance=turn["counselor"],
-            current_state=state,
-            persona=scenario["persona"],
-            case_data=scenario["case"],
-            transcript_history=history,
-            topic_notes=topic_notes,
-        )
-        ms = (time.perf_counter() - t0) * 1000
+        if cfg["mode"] == "split":
+            decided = await state_updater.update_client_state_decision(
+                counselor_utterance=turn["counselor"],
+                current_state=state,
+                persona=scenario["persona"],
+                case_data=scenario["case"],
+                transcript_history=history,
+                with_reasons=cfg["decision_variant"] == "reason",
+                history_turns=cfg["history_turns"],
+            )
+            new_state = state_updater.ClientState(
+                **{
+                    **state,
+                    "emotion_type": decided.emotion_short,
+                    "disclosure_level": decided.disclosure_level,
+                    "discord_present": decided.discord_present,
+                    "ambivalence_lean": decided.ambivalence_lean,
+                }
+            )
+        else:
+            new_state = await state_updater.update_client_state_llm(
+                counselor_utterance=turn["counselor"],
+                current_state=state,
+                persona=scenario["persona"],
+                case_data=scenario["case"],
+                transcript_history=history,
+                topic_notes=topic_notes,
+            )
+        ms = recorder.last_ms
         raw = recorder.last_raw
+        tok = next(iter(usage.values()), {"input": 0, "output": 0})
         results.append(
             {
                 "turn": turn["turn"],
                 "ms": round(ms),
+                "input_tokens": tok["input"],
+                "output_tokens": tok["output"],
                 "disclosure_level": new_state.disclosure_level,
                 "raw_disclosure_level": raw.disclosure_level if raw is not None else None,
                 "discord_present": new_state.discord_present,
@@ -397,18 +462,28 @@ async def run_replay(args: argparse.Namespace) -> None:
     sem = asyncio.Semaphore(args.concurrency)
     all_results: dict[str, Any] = {}
 
+    cfg = {
+        "mode": args.mode,
+        "decision_variant": args.decision_variant,
+        "history_turns": args.history_turns,
+        "limiter": RateLimiter(args.rpm),
+    }
     for model_arg in args.models:
         model, budget = parse_model_arg(model_arg)
-        settings.GEMINI_MODEL_STATE = model
-        settings.GEMINI_THINKING_BUDGET_STATE = budget
+        settings.GEMINI_MODEL_STATE = settings.GEMINI_MODEL_STATE_DECISION = model
+        settings.GEMINI_THINKING_BUDGET_STATE = settings.GEMINI_THINKING_BUDGET_STATE_DECISION = budget
         label = f"{model} (budget={'none' if budget is None else budget})"
+        if args.mode == "split":
+            label += f" split/{args.decision_variant}/riwayat {args.history_turns}"
+        else:
+            label += " combined"
         print(f"\n=== Model {label}: {len(sessions)} sesi x {args.runs} run ===", flush=True)
 
         async def one(session: dict[str, Any], run: int) -> tuple[str, int, dict[str, Any]]:
             async with sem:
                 scenario = fixture["scenarios"][session["scenario_code"]]
                 parent = by_code[session["parent_session_code"]]["turns"] if session["parent_session_code"] else []
-                res = await replay_session(session, scenario, parent)
+                res = await replay_session(session, scenario, parent, cfg)
                 print(f"  selesai {session['session_code']} run {run + 1}", flush=True)
                 return session["session_code"], run, res
 
@@ -432,6 +507,12 @@ async def run_replay(args: argparse.Namespace) -> None:
             print(f"  dokumen : disclosure naik {fmt_turns(doc_tr['rise'])} | discord muncul {fmt_turns(doc_tr['discord_on'])} | mereda {fmt_turns(doc_tr['discord_off'])}")
             print(f"            disclosure {' '.join(l[0].upper() for l in doc_levels)} | discord {' '.join('D' if d else '.' for d in doc_discord)}")
             d_match, x_match, ms_all, corrections = [], [], [], 0
+            tok_in = [t["input_tokens"] for r in runs for t in r["turns"]]
+            tok_out = [t["output_tokens"] for r in runs for t in r["turns"]]
+            doc_reaches_high = "high" in doc_levels
+            false_high_runs = sum(
+                1 for r in runs if not doc_reaches_high and any(t["disclosure_level"] == "high" for t in r["turns"])
+            )
             for i, res in enumerate(runs, start=1):
                 levels = [t["disclosure_level"] for t in res["turns"]]
                 discords = [t["discord_present"] for t in res["turns"]]
@@ -484,16 +565,20 @@ async def run_replay(args: argparse.Namespace) -> None:
                     ),
                     "avg_ms": round(avg_ms),
                     "corrections": corrections,
+                    "false_high": f"{false_high_runs}/{len(runs)}" if not doc_reaches_high else "n/a",
+                    "avg_input_tokens": round(statistics.mean(tok_in)),
+                    "avg_output_tokens": round(statistics.mean(tok_out)),
                 }
             )
 
     print("\n=== Ringkasan (cocok = rata-rata giliran sama dengan dokumen dari 10; per run dipisah '/') ===")
-    header = ["Sesi", "Model", "Cocok D", "Cocok Dc", "Naik: dok", "Naik: model", "Discord dok", "Discord model", "A ms", "Koreksi"]
+    print("High palsu = jumlah run yang naik ke high padahal dokumen tidak mencapai high (n/a = dokumen mencapai high)")
+    header = ["Sesi", "Model", "Cocok D", "Cocok Dc", "Naik: dok", "Naik: model", "Discord dok", "Discord model", "High palsu", "A ms", "Tok in", "Tok out", "Koreksi"]
     print(" | ".join(header))
     for r in summary_rows:
         print(
             f"{r['session']} | {r['model']} | {r['disclosure_match']:.1f} | {r['discord_match']:.1f} | {r['rise_doc']} | {r['rise_model']} | "
-            f"{r['discord_doc']} | {r['discord_model']} | {r['avg_ms']} | {r['corrections']}"
+            f"{r['discord_doc']} | {r['discord_model']} | {r['false_high']} | {r['avg_ms']} | {r['avg_input_tokens']} | {r['avg_output_tokens']} | {r['corrections']}"
         )
 
     if args.output:
@@ -517,6 +602,10 @@ def main() -> None:
     r.add_argument("--concurrency", type=int, default=4, help="jumlah sesi yang di-replay bersamaan")
     r.add_argument("--show-side-by-side", action="store_true", help="tampilkan emotion & ambivalence dokumen vs model")
     r.add_argument("--output", help="simpan hasil lengkap ke file JSON")
+    r.add_argument("--mode", choices=["combined", "split"], default="combined", help="split: State Decision Agent saja")
+    r.add_argument("--decision-variant", choices=["reason", "no_reason"], default="reason", help="mode split: dengan/tanpa field alasan")
+    r.add_argument("--history-turns", type=int, default=4, help="mode split: jumlah giliran riwayat di prompt")
+    r.add_argument("--rpm", type=float, default=0, help="batas panggilan Gemini per menit (0 = tanpa batas)")
 
     args = parser.parse_args()
     if args.cmd == "build-fixture":
