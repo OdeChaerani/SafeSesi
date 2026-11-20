@@ -5,14 +5,16 @@ backend/.env
 frontend/.env
 *.env.local
 
-# Documentation (Local only)
-docs/
+# Dokumen acuan (DOCX/PDF) tetap lokal; catatan markdown ikut di-commit
 *.docx
 *.pdf
-*BRD*
-*brd*
-*.md
 backend/docs/
+.agents/
+
+# Fixture CASAA: transkrip latihan berhak cipta, dibangun ulang lokal (backend/evals/README.md)
+backend/evals/fixtures/casaa/
+# Hasil run evals (dapat memuat kutipan transkrip CASAA); folder tetap ada lewat .gitkeep
+backend/evals/results/*.json
 
 # Python
 __pycache__/
