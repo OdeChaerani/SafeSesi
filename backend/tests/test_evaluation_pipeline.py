@@ -9,9 +9,10 @@ import json
 import unittest
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 from api.evaluations import build_input
+from repositories.evaluations import save_evaluation_results
 from schemas.evaluation import (
     BehaviorCodingOutput,
     FeedbackOutput,
@@ -219,6 +220,18 @@ class TestAgentOutputValidation(unittest.IsolatedAsyncioTestCase):
         res = await evaluate(full_llm())
         alt = next(f for f in res.feedback if f["kind"] == "alternative_response")
         self.assertEqual(alt["content"], "Coba katakan ini.")
+        self.assertEqual(alt["explanation"], "penjelasan")  # penjelasan tidak dibuang
+
+    async def test_alternative_response_explanation_saved_to_db(self):
+        res = await evaluate(full_llm())
+        conn = AsyncMock()
+        conn.transaction = MagicMock(return_value=MagicMock(__aenter__=AsyncMock(), __aexit__=AsyncMock(return_value=False)))
+        turn_ids = {t["turn_no"]: 100 + t["turn_no"] for t in FIXTURE["turns"]}
+        await save_evaluation_results(conn, 7, res, turn_ids, 700)
+        rows = next(c.args[1] for c in conn.executemany.call_args_list if "INSERT INTO feedback_items" in c.args[0])
+        by_kind = {r[1]: r for r in rows}
+        self.assertEqual(by_kind["alternative_response"][7], "penjelasan")
+        self.assertIsNone(by_kind["strength"][7])  # penjelasan jenis lain sudah ada di content
 
     async def test_global_score_out_of_range_fails(self):
         llm = full_llm()

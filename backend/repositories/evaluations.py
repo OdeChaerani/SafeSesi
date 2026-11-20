@@ -110,11 +110,17 @@ async def save_evaluation_results(
         if result.feedback:
             await conn.executemany(
                 """
-                INSERT INTO feedback_items (evaluation_id, kind, turn_id, content, sort_order, excerpt, evidence_turn_nos)
-                VALUES ($1, $2::feedback_kind, $3, $4, $5, $6, $7)
+                INSERT INTO feedback_items
+                    (evaluation_id, kind, turn_id, content, sort_order, excerpt, evidence_turn_nos, explanation)
+                VALUES ($1, $2::feedback_kind, $3, $4, $5, $6, $7, $8)
                 """,
                 [
-                    (evaluation_id, f["kind"], turn_ids.get(f["turn_no"]), f["content"], i, f["excerpt"], f["evidence_turn_nos"])
+                    (
+                        evaluation_id, f["kind"], turn_ids.get(f["turn_no"]), f["content"], i, f["excerpt"],
+                        f["evidence_turn_nos"],
+                        # Jenis lain: penjelasan sudah ada di content.
+                        f.get("explanation") if f["kind"] == "alternative_response" else None,
+                    )
                     for i, f in enumerate(result.feedback)
                 ],
             )
@@ -171,7 +177,7 @@ async def get_evaluation_details(conn: asyncpg.Connection, evaluation_id: int) -
     )
     feedback = await conn.fetch(
         """
-        SELECT f.kind::text AS kind, t.turn_no, f.excerpt, f.content, f.evidence_turn_nos
+        SELECT f.kind::text AS kind, t.turn_no, f.excerpt, f.content, f.explanation, f.evidence_turn_nos
         FROM feedback_items f LEFT JOIN turns t ON t.id = f.turn_id
         WHERE f.evaluation_id = $1 ORDER BY f.sort_order
         """,

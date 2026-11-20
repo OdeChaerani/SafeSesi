@@ -265,15 +265,19 @@ function FeedbackColumn({ title, icon, tone, items, empty }) {
   return (
     <Card title={title} icon={icon}>
       {items.length === 0 && <p className="text-xs text-[#64748b]">{empty}</p>}
-      {items.map((f, i) => (
-        <div key={i} className={`ss-lift rounded-xl p-3 flex flex-col gap-2 ${tone}`}>
-          <div className="flex items-center gap-2">
-            <TurnTag n={f.turn_no} />
-          </div>
-          <p className="text-sm italic text-[#1e1a34]">“{f.excerpt}”</p>
-          <p className="text-xs text-[#475569] leading-relaxed">{f.content}</p>
-        </div>
-      ))}
+      <ul className="flex flex-col gap-3">
+        {items.map((f, i) => (
+          <li key={i} className="flex gap-2.5 items-start">
+            <span className={`material-symbols-outlined text-[18px] mt-0.5 ${tone.icon}`}>{tone.bullet}</span>
+            <div className="flex flex-col gap-1.5 min-w-0">
+              <p className="text-sm text-[#1e1a34] leading-relaxed">{f.content}</p>
+              <p className={`text-xs text-[#64748b] border-l-2 pl-2 ${tone.border}`}>
+                <TurnTag n={f.turn_no} /> <span className="italic">“{f.excerpt}”</span>
+              </p>
+            </div>
+          </li>
+        ))}
+      </ul>
     </Card>
   )
 }
@@ -333,14 +337,14 @@ function SummaryTab({ session, evaluation, isShort }) {
             <FeedbackColumn
               title="Kekuatan"
               icon="thumb_up"
-              tone="bg-emerald-50/60"
+              tone={{ bullet: 'check_circle', icon: 'text-emerald-600', border: 'border-emerald-300' }}
               items={evaluation.feedback.filter((f) => f.kind === 'strength')}
               empty="Belum terlihat cukup bukti untuk kekuatan tertentu."
             />
             <FeedbackColumn
               title="Bisa dikembangkan"
               icon="trending_up"
-              tone="bg-amber-50/60"
+              tone={{ bullet: 'arrow_upward', icon: 'text-amber-600', border: 'border-amber-300' }}
               items={evaluation.feedback.filter((f) => f.kind === 'improvement')}
               empty="Tidak ada hal yang menonjol untuk dikembangkan."
             />
@@ -449,6 +453,12 @@ function AlternativesCard({ evaluation, turns }) {
                 <p className="text-sm text-[#1e1a34] mt-1">“{f.content}”</p>
               </div>
             </div>
+            {f.explanation && (
+              <p className="flex gap-2 text-xs text-[#475569] leading-relaxed">
+                <span className="material-symbols-outlined text-[16px] text-[#f5b51b]">tips_and_updates</span>
+                <span>{f.explanation}</span>
+              </p>
+            )}
             {codes.length > 0 && (
               <Reason label="Kenapa diberi kode ini">
                 <ul className="flex flex-col gap-1">

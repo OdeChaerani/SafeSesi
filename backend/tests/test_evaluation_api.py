@@ -37,7 +37,14 @@ DETAILS = {
     "globals": [{"dimension": d, "score": 4, "reason": "r", "evidence_turn_nos": [1]}
                 for d in ("cultivating_change_talk", "softening_sustain_talk", "partnership", "empathy")],
     "processes": [{"process": "focusing", "start_turn_no": None, "end_turn_no": None, "excerpt": None, "reason": "r"}],
-    "feedback": [{"kind": "strength", "turn_no": 1, "excerpt": "e", "content": "c", "evidence_turn_nos": []}],
+    "feedback": [
+        {"kind": "strength", "turn_no": 1, "excerpt": "e", "content": "c", "explanation": None, "evidence_turn_nos": []},
+        {"kind": "alternative_response", "turn_no": 1, "excerpt": "e", "content": "Kalimat alternatif.",
+         "explanation": "Kenapa alternatif ini membantu.", "evidence_turn_nos": [2]},
+        # Evaluasi lama sebelum kolom explanation ada: NULL.
+        {"kind": "alternative_response", "turn_no": 3, "excerpt": "e", "content": "Alternatif lama.",
+         "explanation": None, "evidence_turn_nos": []},
+    ],
 }
 
 
@@ -122,6 +129,14 @@ class TestGetEvaluation(BaseTestCase):
         self.assertEqual(res["summary_measures"]["technical_global"]["value"], 4.0)
         self.assertFalse(res["processes"][0]["evidence_found"])
         self.assertNotIn("coding_debug", res)
+
+    def test_alternative_response_explanation_sent_and_optional(self):
+        res = self.run_with(self.get_sample_user(user_id=10), session(), evaluation())
+        alts = [f for f in res["feedback"] if f["kind"] == "alternative_response"]
+        self.assertEqual(alts[0]["explanation"], "Kenapa alternatif ini membantu.")
+        self.assertEqual(alts[0]["content"], "Kalimat alternatif.")
+        self.assertIsNone(alts[1]["explanation"])
+        self.assertEqual(alts[1]["content"], "Alternatif lama.")
 
     def test_student_cannot_see_other_students_evaluation(self):
         with self.assertRaises(HTTPException) as ctx:
