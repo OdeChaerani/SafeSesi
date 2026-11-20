@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import SimulationHeader from '../components/simulation/SimulationHeader'
 import VirtualClientStage from '../components/simulation/VirtualClientStage'
 import TranscriptPanel from '../components/simulation/TranscriptPanel'
+import Button from '../components/ui/Button'
 import { FALLBACK_SCENARIOS } from '../data/fallbackScenarios'
 import { apiUrl } from '../config'
 
@@ -117,6 +118,7 @@ export default function SimulationPage({
   const [isProcessing, setIsProcessing] = useState(false)
   const [clientStatus, setClientStatus] = useState('Mendengarkan aktif')
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const [sessionEnded, setSessionEnded] = useState(false)
 
   // State untuk Panel Transkrip (Buka/Tutup & Ukuran Lebar)
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(true)
@@ -342,9 +344,35 @@ export default function SimulationPage({
       if (onExitSession) {
         onExitSession()
       } else {
-        navigate('/latihan-mandiri')
+        setSessionEnded(true)
       }
     }
+  }
+
+  if (sessionEnded) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-[#352f55] p-4">
+        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-xs border border-slate-100 flex flex-col items-center text-center gap-3 max-w-md">
+          <div className="w-12 h-12 rounded-xl bg-[#ede9fe] text-[#352f55] flex items-center justify-center">
+            <span className="material-symbols-outlined text-[28px]">task_alt</span>
+          </div>
+          <h2 className="text-lg md:text-xl text-[#1e1a34] font-bold">Sesi telah diakhiri</h2>
+          <p className="text-xs md:text-sm text-[#64748b]">
+            Kamu bisa melihat hasil evaluasi sesi ini atau kembali ke katalog latihan.
+          </p>
+          <div className="flex flex-wrap justify-center gap-2 mt-2">
+            <Button variant="outline" onClick={() => navigate('/latihan-mandiri')}>
+              Kembali ke katalog
+            </Button>
+            {currentSessionId && (
+              <Button icon="analytics" onClick={() => navigate(`/evaluasi/${currentSessionId}`)}>
+                Lihat Hasil Evaluasi
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

@@ -40,3 +40,27 @@ body {
 * {
   scrollbar-width: none;
 }
+
+/* Micro-interaction halaman Hasil Evaluasi */
+@keyframes ss-fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ss-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes ss-grow-x {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.ss-fade-up { animation: ss-fade-up 0.35s ease-out backwards; }
+.ss-fade-in { animation: ss-fade-in 0.25s ease-out backwards; }
+.ss-grow-x { transform-origin: left; animation: ss-grow-x 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.ss-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.ss-lift:hover { transform: translateY(-2px); box-shadow: 0 6px 16px -6px rgb(30 26 52 / 0.18); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ss-fade-up, .ss-fade-in, .ss-grow-x { animation: none; }
+  .ss-lift, .ss-lift:hover { transition: none; transform: none; }
+}

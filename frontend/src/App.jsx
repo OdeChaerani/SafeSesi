@@ -6,6 +6,7 @@ import CatalogPage from './pages/CatalogPage'
 import BriefingPage from './pages/BriefingPage'
 import SimulationPage from './pages/SimulationPage'
 import LoginPage from './pages/LoginPage'
+import EvaluationPage from './pages/EvaluationPage'
 
 const AUTH_STORAGE_KEY = 'safesesi_auth_user'
 
@@ -160,6 +161,17 @@ function App() {
         element={
           <ProtectedRoute isAuthenticated={isAuthenticated}>
             <SimulationPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/evaluasi/:sessionId"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <DashboardLayout onLogout={handleLogout}>
+              <EvaluationPage />
+            </DashboardLayout>
           </ProtectedRoute>
         }
       />
