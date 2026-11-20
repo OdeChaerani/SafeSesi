@@ -13,6 +13,8 @@ ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 class Settings(BaseSettings):
     """Konfigurasi global backend SafeSesi menggunakan pydantic-settings."""
 
+    # development | production. Skrip yang memanggil Gemini menolak jalan di production.
+    APP_ENV: str = "development"
     DATABASE_URL: str = ""
     GEMINI_API_KEY: str = ""
     # Model dan thinking budget per peran (A = state, B = responder, C = notes).
@@ -29,6 +31,15 @@ class Settings(BaseSettings):
     GEMINI_MODEL_STATE_DETAIL: str = "gemini-3.8-flash"
     GEMINI_THINKING_BUDGET_STATE_DECISION: int | None = 0
     GEMINI_THINKING_BUDGET_STATE_DETAIL: int | None = 0
+    # Evaluasi MITI (setelah sesi selesai). Budget None = thinking bawaan model.
+    GEMINI_MODEL_BEHAVIOR_CODING: str = "gemini-3.8-flash"
+    GEMINI_MODEL_GLOBAL_SCORING: str = "gemini-3.8-flash"
+    GEMINI_MODEL_PROCESS_OBSERVATION: str = "gemini-3.8-flash"
+    GEMINI_MODEL_FEEDBACK: str = "gemini-3.8-flash"
+    GEMINI_THINKING_BUDGET_BEHAVIOR_CODING: int | None = None
+    GEMINI_THINKING_BUDGET_GLOBAL_SCORING: int | None = None
+    GEMINI_THINKING_BUDGET_PROCESS_OBSERVATION: int | None = None
+    GEMINI_THINKING_BUDGET_FEEDBACK: int | None = None
     # combined: Peran A satu panggilan sebelum Peran B. split: State Decision Agent sebelum
     # Peran B, State Detail Agent setelah respons (bersama Peran C, di lock giliran).
     # Mode dipilih eksplisit; tidak ada perpindahan mode otomatis.
@@ -53,6 +64,10 @@ class Settings(BaseSettings):
         "GEMINI_MODEL_NOTES",
         "GEMINI_MODEL_STATE_DECISION",
         "GEMINI_MODEL_STATE_DETAIL",
+        "GEMINI_MODEL_BEHAVIOR_CODING",
+        "GEMINI_MODEL_GLOBAL_SCORING",
+        "GEMINI_MODEL_PROCESS_OBSERVATION",
+        "GEMINI_MODEL_FEEDBACK",
         mode="before",
     )
     @classmethod
@@ -69,6 +84,10 @@ class Settings(BaseSettings):
         "GEMINI_THINKING_BUDGET_NOTES",
         "GEMINI_THINKING_BUDGET_STATE_DECISION",
         "GEMINI_THINKING_BUDGET_STATE_DETAIL",
+        "GEMINI_THINKING_BUDGET_BEHAVIOR_CODING",
+        "GEMINI_THINKING_BUDGET_GLOBAL_SCORING",
+        "GEMINI_THINKING_BUDGET_PROCESS_OBSERVATION",
+        "GEMINI_THINKING_BUDGET_FEEDBACK",
         mode="before",
     )
     @classmethod

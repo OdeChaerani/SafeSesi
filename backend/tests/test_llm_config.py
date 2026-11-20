@@ -124,6 +124,9 @@ class TestStartupValidation(unittest.IsolatedAsyncioTestCase):
         s.GEMINI_MODEL_STATE, s.GEMINI_THINKING_BUDGET_STATE = "gemini-3.8-flash", 0
         s.GEMINI_MODEL_RESPONDER, s.GEMINI_THINKING_BUDGET_RESPONDER = "gemini-3.8-flash", 0
         s.GEMINI_MODEL_NOTES, s.GEMINI_THINKING_BUDGET_NOTES = notes_model, notes_budget
+        for role in ("BEHAVIOR_CODING", "GLOBAL_SCORING", "PROCESS_OBSERVATION", "FEEDBACK"):
+            setattr(s, f"GEMINI_MODEL_{role}", "gemini-3.8-flash")
+            setattr(s, f"GEMINI_THINKING_BUDGET_{role}", 0)
         return s
 
     async def test_probes_each_distinct_combo_once(self):
@@ -132,6 +135,15 @@ class TestStartupValidation(unittest.IsolatedAsyncioTestCase):
         await validate_llm_configs(self.settings(), client=llm)
         probed = sorted((c.args[0], c.args[1]) for c in llm.probe.await_args_list)
         self.assertEqual(probed, [("gemini-3.5-flash-lite", None), ("gemini-3.8-flash", 0)])
+
+    async def test_evaluator_agents_validated_at_startup(self):
+        s = self.settings()
+        s.GEMINI_THINKING_BUDGET_FEEDBACK = None  # kombinasi baru: gemini-3.8-flash + budget bawaan
+        llm = MagicMock()
+        llm.probe = AsyncMock()
+        await validate_llm_configs(s, client=llm)
+        probed = {(c.args[0], c.args[1]): c.kwargs["role"] for c in llm.probe.await_args_list}
+        self.assertEqual(probed[("gemini-3.8-flash", None)], "feedback")
 
     async def test_rejected_combo_fails_startup(self):
         llm = MagicMock()

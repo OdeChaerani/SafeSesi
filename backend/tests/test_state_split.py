@@ -297,7 +297,10 @@ class TestUsageAndConfig(unittest.TestCase):
         _record_usage("state_decision", usage)
         _record_usage("state_decision", usage)
         _record_usage("B", MagicMock(prompt_token_count=None, candidates_token_count=5))
-        self.assertEqual(sink, {"state_decision": {"input": 240, "output": 60}, "B": {"input": 0, "output": 5}})
+        self.assertEqual(sink["state_decision"]["input"], 240)
+        self.assertEqual(sink["state_decision"]["output"], 60)
+        self.assertEqual(sink["state_decision"]["calls"], 2)
+        self.assertEqual((sink["B"]["input"], sink["B"]["output"], sink["B"]["calls"]), (0, 5, 1))
 
     def test_only_active_mode_roles_validated(self):
         s = MagicMock()

@@ -24,9 +24,13 @@ ROLE_NAMES = {
     "C": "Peran C (Notes Updater)",
     "state_decision": "State Decision Agent (Peran A, mode split)",
     "state_detail": "State Detail Agent (Peran A, mode split)",
+    "behavior_coding": "Behavior Coding Agent (evaluasi MITI)",
+    "global_scoring": "Global Scoring Agent (evaluasi MITI)",
+    "process_observation": "Process Observation Agent (evaluasi MITI)",
+    "feedback": "Feedback Agent (evaluasi MITI)",
 }
 
-# Penampung token per peran untuk satu giliran: {peran: {"input": n, "output": n}}.
+# Penampung token per peran: {peran: {"input": n, "output": n, "thoughts": n, "calls": n}}.
 # Dict yang sama terlihat oleh tugas background karena create_task menyalin konteks.
 _usage_sink: ContextVar[dict[str, dict[str, int]] | None] = ContextVar("llm_usage_sink", default=None)
 
@@ -40,8 +44,13 @@ def _record_usage(role: str | None, usage: Any) -> None:
     sink = _usage_sink.get()
     if sink is None or not role:
         return
-    entry = sink.setdefault(role, {"input": 0, "output": 0})
-    for key, attr in (("input", "prompt_token_count"), ("output", "candidates_token_count")):
+    entry = sink.setdefault(role, {"input": 0, "output": 0, "thoughts": 0, "calls": 0})
+    entry["calls"] += 1
+    for key, attr in (
+        ("input", "prompt_token_count"),
+        ("output", "candidates_token_count"),
+        ("thoughts", "thoughts_token_count"),
+    ):
         value = getattr(usage, attr, None)
         entry[key] += value if isinstance(value, int) else 0
 
@@ -207,6 +216,17 @@ def role_llm_configs(settings: Any) -> dict[str, tuple[str, int | None]]:
     }
 
 
+EVALUATOR_ROLES = ("behavior_coding", "global_scoring", "process_observation", "feedback")
+
+
+def evaluator_llm_configs(settings: Any) -> dict[str, tuple[str, int | None]]:
+    """Model dan thinking budget per agen evaluator MITI."""
+    return {
+        role: (getattr(settings, f"GEMINI_MODEL_{role.upper()}"), getattr(settings, f"GEMINI_THINKING_BUDGET_{role.upper()}"))
+        for role in EVALUATOR_ROLES
+    }
+
+
 async def validate_llm_configs(settings: Any, client: "GeminiAsyncClient | None" = None) -> None:
     """Validasi startup: satu panggilan ringan per kombinasi model + budget yang dipakai.
 
@@ -217,7 +237,7 @@ async def validate_llm_configs(settings: Any, client: "GeminiAsyncClient | None"
     llm = client or get_gemini_client()
     # Peran dengan kombinasi sama cukup diuji sekali
     combos: dict[tuple[str, int | None], list[str]] = {}
-    for role, combo in role_llm_configs(settings).items():
+    for role, combo in {**role_llm_configs(settings), **evaluator_llm_configs(settings)}.items():
         combos.setdefault(combo, []).append(role)
 
     async def check(combo: tuple[str, int | None], roles: list[str]) -> None:
