@@ -6,8 +6,8 @@ dijalankan in-process (httpx ASGITransport + lifespan), jadi lock giliran, Peran
 Detail Agent di background berjalan seperti di server. Log safesesi.timing ditangkap lalu
 dirangkum. session_id yang dibuat dicetak; skrip tidak menghapus apa pun.
 
-Pemakaian (dari folder backend/):
-  python scripts/sim_timing.py --modes combined split --turns 6 --pause-s 30
+Pemakaian (dari root repo):
+  backend/venv/Scripts/python backend/evals/scripts/sim_timing.py --modes combined split --turns 6 --pause-s 30
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-BACKEND_DIR = Path(__file__).resolve().parents[1]
+BACKEND_DIR = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(BACKEND_DIR))
 
 # Ucapan konselor generik buatan baru (bukan dari dokumen Ilustrasi).

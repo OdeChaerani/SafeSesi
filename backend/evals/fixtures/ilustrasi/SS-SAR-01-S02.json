@@ -1,0 +1,274 @@
+{
+  "fixture_id": "SS-SAR-01-S02",
+  "title": "Ilustrasi SafeSesi SS-SAR-01-S02",
+  "source": "Ilustrasi_Sesi_dan_Evaluasi_SafeSesi_final.docx (ilustratif, bukan validasi ahli)",
+  "language": "id",
+  "duration_known": true,
+  "duration_seconds": 676,
+  "change_target": "Mencari informasi dan mendaftar kuliah kelas karyawan.",
+  "change_target_assumed": false,
+  "initial_summary": "Sari, 28 tahun, bekerja sebagai staf administrasi di sebuah toko. Beberapa tahun lalu ia berhenti kuliah, dan belakangan ia mulai memikirkan untuk kuliah lagi. Ia datang untuk membicarakan hal itu. Arah latihan: bantu Sari memperjelas pandangannya tentang kuliah lagi dan langkah yang mungkin ia ambil, yaitu mencari informasi atau mendaftar kuliah kelas karyawan.",
+  "expected_globals": {
+    "cultivating_change_talk": 4,
+    "softening_sustain_talk": 4,
+    "partnership": 4,
+    "empathy": 5
+  },
+  "expected_global_reasons": {
+    "cultivating_change_talk": "K03 mengundang manfaat bantuan kakak; K06 memperkuat keinginan membuktikan diri; K07 mengundang langkah dari klien.",
+    "softening_sustain_talk": "K04 menyebut keraguan tanpa memperdalamnya dan K06 merefleksikan dua sisi yang diakhiri alasan berubah; hambatan tidak digali berulang.",
+    "partnership": "K08 meminta izin sebelum memberi informasi; K09 menyesuaikan saran dan menegaskan pilihan klien; langkah pada C07 dan C10 berasal dari klien.",
+    "empathy": "K04 mengungkap keraguan yang belum diucapkan klien dan dikonfirmasi pada C04; K06 menangkap dua sisi perasaan yang tidak dikatakan secara langsung."
+  },
+  "expected_frequencies": {
+    "GI": 0,
+    "P": 0,
+    "PWP": 1,
+    "Q": 4,
+    "SR": 1,
+    "CR": 2,
+    "AF": 1,
+    "SEEK": 1,
+    "EA": 1,
+    "CONFRONT": 0
+  },
+  "expected_processes": [
+    {
+      "process": "engaging",
+      "text": "Terlihat upaya memahami keraguan klien yang belum diceritakan (K04–C04) dan mengakui keberanian klien (K05–C05)."
+    },
+    {
+      "process": "focusing",
+      "text": "Belum cukup bukti untuk mengidentifikasi proses ini; K01 melanjutkan pembahasan sesi sebelumnya tanpa menanyakan atau menyepakati fokus."
+    },
+    {
+      "process": "evoking",
+      "text": "Terlihat upaya mengundang manfaat perubahan (K03–C03) dan menguatkan keinginan klien membuktikan diri (K06–C06)."
+    },
+    {
+      "process": "planning",
+      "text": "Terlihat pembahasan langkah awal yang berasal dari klien (K07–C07), pemberian saran dengan izin (K08–K09), dan waktu pelaksanaan (K10–C10). Klien belum berkomitmen mendaftar."
+    }
+  ],
+  "expected_feedback": [
+    {
+      "kind": "strength",
+      "text": "K04 mengungkap keraguan yang belum diucapkan klien; C04 memperlihatkan Sari bersedia menyampaikan rasa malu dan takut gagal."
+    },
+    {
+      "kind": "strength",
+      "text": "K08–K09 meminta izin sebelum memberi informasi dan mengembalikan pilihan; C09 menunjukkan Sari menyesuaikan saran dengan keadaannya."
+    },
+    {
+      "kind": "improvement",
+      "text": "Empat giliran berupa pertanyaan (K01, K03, K07, K10) dengan refleksi yang lebih sedikit (R:Q 0,75). Setelah C07, klien menyebut langkahnya sendiri; langkah itu dapat direfleksikan lebih dulu sebelum bertanya lagi."
+    },
+    {
+      "kind": "alternative_response",
+      "text": "Kamu ingin mulai dari bertanya ke kakak, tanpa harus langsung mendaftar. Bagian mana dari langkah itu yang terasa paling mungkin kamu lakukan minggu ini?"
+    }
+  ],
+  "turns": [
+    {
+      "turn_no": 1,
+      "label": "K01",
+      "speaker": "counselor",
+      "content": "Terakhir kali kita membahas biaya dan laman pendaftaran yang sempat kamu tutup. Bagaimana kabarmu sejak itu?",
+      "expected_codes": [
+        "Q"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": "Kalimat pertama merujuk isi sesi sebelumnya dan tidak dikode; kalimat kedua adalah pertanyaan (Question)."
+    },
+    {
+      "turn_no": 2,
+      "label": "C01",
+      "speaker": "client",
+      "content": "Lumayan. Saya masih kepikiran soal kuliah, tapi minggu ini belum sempat mengurus apa-apa."
+    },
+    {
+      "turn_no": 3,
+      "label": "K02",
+      "speaker": "counselor",
+      "content": "Kamu masih memikirkannya, tetapi minggu ini belum ada langkah yang sempat kamu lakukan.",
+      "expected_codes": [
+        "SR"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": null
+    },
+    {
+      "turn_no": 4,
+      "label": "C02",
+      "speaker": "client",
+      "content": "Iya. Kakak saya juga sempat menanyakannya. Dia sudah lulus dan sekarang kerja di kantor. Katanya dia mau bantu mencarikan informasi kelas karyawan, tapi saya belum jawab."
+    },
+    {
+      "turn_no": 5,
+      "label": "K03",
+      "speaker": "counselor",
+      "content": "Kalau kakakmu membantu mencarikan informasi itu, apa yang mungkin berbeda buatmu?",
+      "expected_codes": [
+        "Q"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": null
+    },
+    {
+      "turn_no": 6,
+      "label": "C03",
+      "speaker": "client",
+      "content": "Mungkin saya jadi punya teman bicara dan tidak merasa sendirian memikirkannya. Cuma, saya masih agak ragu."
+    },
+    {
+      "turn_no": 7,
+      "label": "K04",
+      "speaker": "counselor",
+      "content": "Ada bagian dari dirimu yang ingin ditemani memikirkannya, tetapi ada keraguan yang belum sempat kamu ceritakan.",
+      "expected_codes": [
+        "CR"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": "Konselor mengangkat makna yang belum diucapkan klien (keraguan yang belum diceritakan); C04 mengonfirmasi (“Iya. Sebenarnya saya malu”)."
+    },
+    {
+      "turn_no": 8,
+      "label": "C04",
+      "speaker": "client",
+      "content": "Iya. Sebenarnya saya malu. Dulu saya berhenti di tengah jalan. Saya takut kalau mencoba lagi nanti gagal lagi, lalu dibandingkan dengan teman-teman yang sudah lulus."
+    },
+    {
+      "turn_no": 9,
+      "label": "K05",
+      "speaker": "counselor",
+      "content": "Terima kasih sudah menceritakannya. Dengan semua keraguan itu, kamu tetap datang dan membicarakannya. Itu butuh keberanian.",
+      "expected_codes": [
+        "AF"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": "Kalimat pertama (“Terima kasih sudah menceritakannya”) tidak dikode; kalimat berikutnya mengakui keberanian spesifik klien untuk datang dan membicarakan keraguannya (Affirm)."
+    },
+    {
+      "turn_no": 10,
+      "label": "C05",
+      "speaker": "client",
+      "content": "Terima kasih. Rasanya sedikit lega bisa mengatakannya."
+    },
+    {
+      "turn_no": 11,
+      "label": "K06",
+      "speaker": "counselor",
+      "content": "Kamu takut gagal lagi, tetapi di sisi lain kamu masih ingin membuktikan bahwa kamu bisa menyelesaikannya.",
+      "expected_codes": [
+        "CR"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": "Refleksi dua sisi yang diakhiri dengan keinginan klien membuktikan diri (alasan berubah)."
+    },
+    {
+      "turn_no": 12,
+      "label": "C06",
+      "speaker": "client",
+      "content": "Iya, itu yang saya rasakan. Kalau ada yang mendampingi, mungkin saya bisa mencoba pelan-pelan."
+    },
+    {
+      "turn_no": 13,
+      "label": "K07",
+      "speaker": "counselor",
+      "content": "Kalau mulai dari yang paling ringan, apa yang mungkin kamu lakukan lebih dulu?",
+      "expected_codes": [
+        "Q"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": null
+    },
+    {
+      "turn_no": 14,
+      "label": "C07",
+      "speaker": "client",
+      "content": "Mungkin saya tanya kakak soal kelas karyawan dulu, belum langsung daftar."
+    },
+    {
+      "turn_no": 15,
+      "label": "K08",
+      "speaker": "counselor",
+      "content": "Boleh saya berbagi satu hal yang biasanya membantu orang yang ingin kuliah lagi sambil bekerja?",
+      "expected_codes": [
+        "SEEK"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": "Konselor meminta izin sebelum berbagi informasi. Permintaan izin tanpa saran dikodekan Seeking Collaboration, bukan Question."
+    },
+    {
+      "turn_no": 16,
+      "label": "C08",
+      "speaker": "client",
+      "content": "Boleh, silakan."
+    },
+    {
+      "turn_no": 17,
+      "label": "K09",
+      "speaker": "counselor",
+      "content": "Beberapa orang memulai dengan menanyakan jadwal kelas dan cicilan biaya ke bagian akademik sebelum memutuskan apa pun, supaya gambarannya lebih jelas. Kalau cocok, kamu bisa menyesuaikannya dengan keadaanmu; pilihannya tetap ada padamu.",
+      "expected_codes": [
+        "PWP",
+        "EA"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": "Saran diberikan setelah izin pada K08–C08, disesuaikan dengan keadaan klien, dan klien dipersilakan menilai kecocokannya (Persuade with Permission; tidak masuk Total MIA maupun MINA). Kalimat “pilihannya tetap ada padamu” menegaskan kendali klien (Emphasizing Autonomy)."
+    },
+    {
+      "turn_no": 18,
+      "label": "C09",
+      "speaker": "client",
+      "content": "Oke, itu masuk akal. Saya bisa sekalian minta kakak menemani saya melihat jadwalnya."
+    },
+    {
+      "turn_no": 19,
+      "label": "K10",
+      "speaker": "counselor",
+      "content": "Kapan kira-kira kamu akan membicarakannya dengan kakakmu?",
+      "expected_codes": [
+        "Q"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": null
+    },
+    {
+      "turn_no": 20,
+      "label": "C10",
+      "speaker": "client",
+      "content": "Mungkin akhir pekan ini. Saya akan coba kirim pesan dulu ke kakak."
+    }
+  ]
+}

@@ -6,14 +6,14 @@ yang diteruskan ke giliran berikutnya adalah hasil model sendiri. Fungsi yang di
 adalah update_client_state_llm dari aplikasi (termasuk aturan Disclosure di kode);
 keluaran mentah LLM juga dicatat untuk melihat seberapa sering kode mengoreksinya.
 
-Pemakaian (dari folder backend/):
+Pemakaian (dari root repo; skrip ini memanggil Gemini sungguhan kecuali build-fixture):
   # 1) Bangun fixture dari docx (docs/ tidak di-commit; fixture di-commit)
-  python scripts/replay_state_ilustrasi.py build-fixture
+  backend/venv/Scripts/python backend/evals/scripts/replay_state_ilustrasi.py build-fixture
   # 2) Replay. Model ditulis "nama" atau "nama:budget" (budget: angka atau none)
-  python scripts/replay_state_ilustrasi.py run --models gemini-3.8-flash:0 gemini-3.5-flash-lite:none
-  python scripts/replay_state_ilustrasi.py run --runs 3 --sessions SS-NAD-01-S01 --show-side-by-side
+  backend/venv/Scripts/python backend/evals/scripts/replay_state_ilustrasi.py run --models gemini-3.8-flash:0 gemini-3.5-flash-lite:none
+  backend/venv/Scripts/python backend/evals/scripts/replay_state_ilustrasi.py run --runs 3 --sessions SS-NAD-01-S01 --show-side-by-side
   # 3) Mode split: State Decision Agent saja (dengan/tanpa alasan, panjang riwayat)
-  python scripts/replay_state_ilustrasi.py run --mode split --decision-variant no_reason --history-turns 8
+  backend/venv/Scripts/python backend/evals/scripts/replay_state_ilustrasi.py run --mode split --decision-variant no_reason --history-turns 8
 """
 
 from __future__ import annotations
@@ -30,12 +30,12 @@ from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree as ET
 
-BACKEND_DIR = Path(__file__).resolve().parents[1]
+BACKEND_DIR = Path(__file__).resolve().parents[2]
 REPO_DIR = BACKEND_DIR.parent
 sys.path.insert(0, str(BACKEND_DIR))
 
 DEFAULT_DOCX = REPO_DIR / "docs" / "Ilustrasi_Sesi_dan_Evaluasi_SafeSesi_final.docx"
-DEFAULT_FIXTURE = BACKEND_DIR / "scripts" / "fixtures" / "ilustrasi_state_sessions.json"
+DEFAULT_FIXTURE = BACKEND_DIR / "evals" / "fixtures" / "ilustrasi" / "ilustrasi_state_sessions.json"
 SESSION_ORDER = ["SS-NAD-01-S01", "SS-SAR-01-S01", "SS-SAR-01-S02", "SS-HEN-01-S01", "SS-RIN-01-S01"]
 
 # Kecenderungan ambivalensi kondisi awal (dokumen menulisnya sebagai teks bebas).
@@ -293,7 +293,7 @@ def build_fixture(docx: Path) -> dict[str, Any]:
     return {
         "source": docx.name,
         "note": (
-            "Dibangun otomatis oleh scripts/replay_state_ilustrasi.py build-fixture. "
+            "Dibangun otomatis oleh evals/scripts/replay_state_ilustrasi.py build-fixture. "
             "ambivalence_lean kondisi awal dipetakan manual dari teks dokumen (INITIAL_AMBIVALENCE_LEAN). "
             "Sesi lanjutan memakai Client State akhir sesi induk dari dokumen; dokumen tidak memisahkan "
             "alasan berubah/bertahan pada state akhir, sehingga reasons_* bernilai null."

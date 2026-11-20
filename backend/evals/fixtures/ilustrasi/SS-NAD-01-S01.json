@@ -1,0 +1,274 @@
+{
+  "fixture_id": "SS-NAD-01-S01",
+  "title": "Ilustrasi SafeSesi SS-NAD-01-S01",
+  "source": "Ilustrasi_Sesi_dan_Evaluasi_SafeSesi_final.docx (ilustratif, bukan validasi ahli)",
+  "language": "id",
+  "duration_known": true,
+  "duration_seconds": 665,
+  "change_target": "Membagi atau membatasi tanggung jawab tambahan agar sesuai dengan kemampuan dan waktu yang tersedia.",
+  "change_target_assumed": false,
+  "initial_summary": "Nadia, 19 tahun, mahasiswi psikologi semester 3. Ia aktif di dua kepanitiaan dan satu organisasi, dan belakangan merasa kewalahan membagi waktu dengan kuliah. Ia datang untuk membicarakannya. Arah latihan: bantu Nadia memperjelas keinginannya dan, bila ia mau, cara membagi atau membatasi tanggung jawab tambahan.",
+  "expected_globals": {
+    "cultivating_change_talk": 4,
+    "softening_sustain_talk": 3,
+    "partnership": 4,
+    "empathy": 4
+  },
+  "expected_global_reasons": {
+    "cultivating_change_talk": "K03 dan K07–K08 memberi ruang memilih fokus dan mengakui usaha Nadia mempertimbangkan batas kemampuan.",
+    "softening_sustain_talk": "Alasan mempertahankan kegiatan ditampung pada K04 dan K07, tetapi saran K06 dan simpulan konselor pada K09 sempat memicu sustain talk.",
+    "partnership": "Nadia memilih fokus, menyatakan batas setelah saran, dan konselor mengembalikan pilihan.",
+    "empathy": "K02, K04, dan K07 merefleksikan beban serta konflik kebutuhan Nadia secara akurat."
+  },
+  "expected_frequencies": {
+    "GI": 0,
+    "P": 2,
+    "PWP": 0,
+    "Q": 3,
+    "SR": 1,
+    "CR": 2,
+    "AF": 1,
+    "SEEK": 1,
+    "EA": 1,
+    "CONFRONT": 0
+  },
+  "expected_processes": [
+    {
+      "process": "engaging",
+      "text": "Terlihat upaya memahami beban klien pada awal sesi (K02–C02) serta memperbaiki hubungan kerja melalui refleksi dan penegasan otonomi ketika klien merasa diarahkan (K07–C07)."
+    },
+    {
+      "process": "focusing",
+      "text": "Pembahasan diarahkan bersama klien melalui K03–C03 ketika konselor menanyakan bagian yang paling ingin dibahas dan klien memilih pembagian tanggung jawab organisasi."
+    },
+    {
+      "process": "evoking",
+      "text": "Terlihat upaya mengenali usaha klien menjaga batas kemampuan (K08–C08), meskipun tindak lanjut pada K09 berubah menjadi argumen dari konselor."
+    },
+    {
+      "process": "planning",
+      "text": "Belum tampak pembahasan rencana tindakan pada sesi ini; pada C10 klien baru ingin memikirkan tugas yang bisa dibagi dan belum siap berbicara dengan koordinator."
+    }
+  ],
+  "expected_feedback": [
+    {
+      "kind": "strength",
+      "text": "K03 memberi Nadia ruang memilih fokus; C03 menunjukkan Nadia memilih membahas pembagian tanggung jawab."
+    },
+    {
+      "kind": "strength",
+      "text": "K07 mengakui saran terlalu cepat dan mengembalikan pilihan; C07 menunjukkan Nadia merasa lebih dipahami."
+    },
+    {
+      "kind": "improvement",
+      "text": "K06 menyarankan keluar secara sepihak dan K09 menyimpulkan arti pengalaman klien untuk membujuk (Persuade), sehingga memunculkan Discord pada C06 dan keraguan pada C09."
+    },
+    {
+      "kind": "alternative_response",
+      "text": "Kamu ingin tetap terlibat, tetapi beban ini mengganggu kuliah. Pilihan apa yang mungkin membantumu membagi tanggung jawab tanpa harus langsung keluar?"
+    }
+  ],
+  "turns": [
+    {
+      "turn_no": 1,
+      "label": "K01",
+      "speaker": "counselor",
+      "content": "Apa yang membuat kamu memutuskan mencari bantuan sekarang?",
+      "expected_codes": [
+        "Q"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": null
+    },
+    {
+      "turn_no": 2,
+      "label": "C01",
+      "speaker": "client",
+      "content": "Akhir-akhir ini tugas kuliah dan kegiatan datang bersamaan. Saya sering bingung harus mulai dari mana."
+    },
+    {
+      "turn_no": 3,
+      "label": "K02",
+      "speaker": "counselor",
+      "content": "Kamu sedang berusaha mengejar banyak hal sekaligus.",
+      "expected_codes": [
+        "SR"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": null
+    },
+    {
+      "turn_no": 4,
+      "label": "C02",
+      "speaker": "client",
+      "content": "Iya. Minggu ini ada tugas kelompok, rapat, dan bahan publikasi yang harus selesai hampir bersamaan."
+    },
+    {
+      "turn_no": 5,
+      "label": "K03",
+      "speaker": "counselor",
+      "content": "Dari semua itu, bagian mana yang paling ingin kamu bahas hari ini?",
+      "expected_codes": [
+        "SEEK"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": "Konselor meminta klien memilih bagian yang ingin dibahas (berbagi kendali atas agenda), sehingga dikodekan Seeking Collaboration, bukan Question."
+    },
+    {
+      "turn_no": 6,
+      "label": "C03",
+      "speaker": "client",
+      "content": "Mungkin soal tanggung jawab organisasi. Saya tidak ingin langsung keluar, tapi rasanya tidak sanggup terus menerima semuanya."
+    },
+    {
+      "turn_no": 7,
+      "label": "K04",
+      "speaker": "counselor",
+      "content": "Kegiatan itu tetap penting buatmu, tetapi cara membagi tanggung jawabnya mulai terasa berat.",
+      "expected_codes": [
+        "CR"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": null
+    },
+    {
+      "turn_no": 8,
+      "label": "C04",
+      "speaker": "client",
+      "content": "Betul. Saya suka teman-temannya dan dapat pengalaman, tapi kuliah saya jadi keteteran."
+    },
+    {
+      "turn_no": 9,
+      "label": "K05",
+      "speaker": "counselor",
+      "content": "Apa yang membuatmu tetap ingin terlibat di kegiatan itu?",
+      "expected_codes": [
+        "Q"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": null
+    },
+    {
+      "turn_no": 10,
+      "label": "C05",
+      "speaker": "client",
+      "content": "Saya merasa dibutuhkan. Kalau saya tidak ikut, takutnya teman-teman kecewa atau menganggap saya tidak serius."
+    },
+    {
+      "turn_no": 11,
+      "label": "K06",
+      "speaker": "counselor",
+      "content": "Kamu sebaiknya keluar dari salah satu kepanitiaan supaya bebanmu cepat berkurang.",
+      "expected_codes": [
+        "P"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": "Konselor menyarankan keluar dari kepanitiaan tanpa meminta izin; arahan tindakan dikodekan Persuade (masuk Total MINA) dan memicu Discord pada C06."
+    },
+    {
+      "turn_no": 12,
+      "label": "C06",
+      "speaker": "client",
+      "content": "Saya belum bilang ingin keluar. Rasanya yang saya maksud belum dipahami."
+    },
+    {
+      "turn_no": 13,
+      "label": "K07",
+      "speaker": "counselor",
+      "content": "Maaf, saya terlalu cepat memberi saran. Kamu ingin tetap terlibat, tetapi tidak ingin semua tanggung jawab mengganggu kuliah. Keputusan tetap ada padamu.",
+      "expected_codes": [
+        "CR",
+        "EA"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": "Kalimat pertama (“Maaf, saya terlalu cepat memberi saran”) tidak dikode; kalimat kedua merefleksikan dua sisi keinginan klien (Complex Reflection); kalimat ketiga (“Keputusan tetap ada padamu”) menegaskan otonomi klien (Emphasizing Autonomy)."
+    },
+    {
+      "turn_no": 14,
+      "label": "C07",
+      "speaker": "client",
+      "content": "Iya, itu lebih mendekati. Saya ingin mencari cara yang tidak langsung membuat saya harus berhenti."
+    },
+    {
+      "turn_no": 15,
+      "label": "K08",
+      "speaker": "counselor",
+      "content": "Kamu berusaha menjaga tanggung jawab sekaligus mulai mempertimbangkan batas kemampuanmu.",
+      "expected_codes": [
+        "AF"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": null
+    },
+    {
+      "turn_no": 16,
+      "label": "C08",
+      "speaker": "client",
+      "content": "Iya. Saya juga pernah minta bantuan untuk desain acara. Ternyata teman saya mau membantu."
+    },
+    {
+      "turn_no": 17,
+      "label": "K09",
+      "speaker": "counselor",
+      "content": "Pengalaman itu menunjukkan bahwa meminta bantuan tidak selalu membuat orang kecewa.",
+      "expected_codes": [
+        "P"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": "Konselor menyimpulkan sendiri argumen bahwa meminta bantuan tidak selalu mengecewakan orang lain untuk meyakinkan klien tanpa izin, sehingga dikodekan Persuade (memicu sustain talk pada C09)."
+    },
+    {
+      "turn_no": 18,
+      "label": "C09",
+      "speaker": "client",
+      "content": "Iya, tapi waktu itu tugasnya jelas. Kalau sekarang saya takut dianggap tidak dapat diandalkan."
+    },
+    {
+      "turn_no": 19,
+      "label": "K10",
+      "speaker": "counselor",
+      "content": "Apa yang terasa paling penting untuk kamu bawa dari percakapan ini?",
+      "expected_codes": [
+        "Q"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": null
+    },
+    {
+      "turn_no": 20,
+      "label": "C10",
+      "speaker": "client",
+      "content": "Mungkin saya tidak harus langsung keluar. Saya ingin memikirkan tugas mana yang bisa dibagi, tapi belum siap bicara dengan koordinator."
+    }
+  ]
+}

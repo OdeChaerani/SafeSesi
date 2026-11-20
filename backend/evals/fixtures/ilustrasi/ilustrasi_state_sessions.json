@@ -1,6 +1,6 @@
 {
   "source": "Ilustrasi_Sesi_dan_Evaluasi_SafeSesi_final.docx",
-  "note": "Dibangun otomatis oleh scripts/replay_state_ilustrasi.py build-fixture. ambivalence_lean kondisi awal dipetakan manual dari teks dokumen (INITIAL_AMBIVALENCE_LEAN). Sesi lanjutan memakai Client State akhir sesi induk dari dokumen; dokumen tidak memisahkan alasan berubah/bertahan pada state akhir, sehingga reasons_* bernilai null.",
+  "note": "Dibangun otomatis oleh evals/scripts/replay_state_ilustrasi.py build-fixture. ambivalence_lean kondisi awal dipetakan manual dari teks dokumen (INITIAL_AMBIVALENCE_LEAN). Sesi lanjutan memakai Client State akhir sesi induk dari dokumen; dokumen tidak memisahkan alasan berubah/bertahan pada state akhir, sehingga reasons_* bernilai null.",
   "scenarios": {
     "SS-NAD-01": {
       "code": "SS-NAD-01",
