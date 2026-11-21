@@ -106,6 +106,7 @@ export default function VirtualClientStage({
             open={isCamPreviewOpen}
             onToggle={() => setIsCamPreviewOpen((prev) => !prev)}
             width="w-52"
+            keepMounted // kamera tetap menyala saat dropdown ditutup (untuk pengamatan ekspresi nanti)
             indicator={<span className={`w-1.5 h-1.5 rounded-full ${isCamActive ? 'bg-emerald-500' : 'bg-slate-300'}`} />}
           >
           {/* Video Preview Box: hanya pratinjau, tidak direkam */}
