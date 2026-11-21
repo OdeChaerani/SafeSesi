@@ -1,12 +1,12 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import AudioCheckBar from '../components/briefing/AudioCheckBar'
+import MediaPermissionCard from '../components/briefing/MediaPermissionCard'
 import BriefingHeader from '../components/briefing/BriefingHeader'
 import ClientProfileCard from '../components/briefing/ClientProfileCard'
 import SessionModeSelector from '../components/briefing/SessionModeSelector'
 import SessionTermsCard from '../components/briefing/SessionTermsCard'
 import { FALLBACK_SCENARIOS } from '../data/fallbackScenarios'
-import { apiUrl } from '../config'
+import { createSession, getBriefingTopics } from '../services/sessions'
 
 export default function BriefingPage({
   scenario: propsScenario,
@@ -85,11 +85,7 @@ export default function BriefingPage({
   useEffect(() => {
     if (selectedMode !== 'continue' || !parentSessionId) return undefined
     let isMounted = true
-    fetch(
-      apiUrl(`/api/v1/sessions/${parentSessionId}/briefing-topics`),
-      { headers: { 'X-Dev-User-Id': '1' } }
-    )
-      .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
+    getBriefingTopics(parentSessionId)
       .then((data) => {
         if (!isMounted) return
         const topics = Array.isArray(data.topics) ? data.topics : []
@@ -121,25 +117,12 @@ export default function BriefingPage({
           : null
 
       // Hubungkan ke endpoint POST /api/v1/sessions
-      const res = await fetch(apiUrl('/api/v1/sessions'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Dev-User-Id': '1',
-        },
-        body: JSON.stringify({
-          scenario_id: scenario.id || scenario.scenarioId || 1,
-          mode: selectedMode,
-          parent_session_id: parentId,
-          class_id: scenario.classId || null,
-        }),
+      const sessionData = await createSession({
+        scenario_id: scenario.id || scenario.scenarioId || 1,
+        mode: selectedMode,
+        parent_session_id: parentId,
+        class_id: scenario.classId || null,
       })
-
-      if (!res.ok) {
-        throw new Error('Gagal membuat sesi di backend')
-      }
-
-      const sessionData = await res.json()
       const payload = {
         ...scenario,
         sessionId: sessionData.id,
@@ -255,7 +238,7 @@ export default function BriefingPage({
             isLoading={isStarting}
           />
 
-          <AudioCheckBar />
+          <MediaPermissionCard />
         </div>
       </div>
     </div>

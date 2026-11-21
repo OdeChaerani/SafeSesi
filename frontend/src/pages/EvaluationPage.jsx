@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
-import { getEvaluation, getSession, requestEvaluation } from '../services/evaluations'
+import { getEvaluation, requestEvaluation } from '../services/evaluations'
+import { getSession } from '../services/sessions'
 
 const POLL_MS = 3000
 const SHORT_SESSION_S = 300
