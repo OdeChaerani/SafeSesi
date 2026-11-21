@@ -1,5 +1,6 @@
 import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
+import { Euler, Quaternion } from 'three'
 import { useAnimations, useGLTF } from '@react-three/drei'
 
 // Avatar Ready Player Me: tidak punya tulang rahang, tapi punya morph target jawOpen dan viseme_*.
@@ -17,6 +18,10 @@ const JAW_FOR_VISEME = {
 }
 const VISEMES = Object.keys(JAW_FOR_VISEME)
 const BLINK_TARGETS = ['eyeBlinkLeft', 'eyeBlinkRight']
+// Tulang yang diluruskan tiap frame (urutan dari pinggul ke kepala). Objek di bawah dipakai ulang tiap frame.
+const POSTURE_BONES = ['Hips', 'Spine', 'Spine1', 'Spine2', 'Neck', 'Head']
+const POSTURE = new Euler()
+const MIRROR = new Quaternion()
 // Talking_0 menoleh 5–12° ke satu sisi dan Talking_2 memutar badan 19–27°: klien tampak tidak menghadap konselor.
 // Talking_1 menoleh seimbang kiri-kanan, jadi hanya itu yang dipakai untuk bicara biasa.
 const TALKING = 'Talking_1'
@@ -47,11 +52,10 @@ function Avatar({ url, getSpeech, expression }) {
   const { animations: tenseClips } = useGLTF(TENSE_TALK_URL)
   const animations = useMemo(() => [...baseClips, ...tenseClips], [baseClips, tenseClips])
   // animations.glb punya track ke "Armature" dan tulang ujung (*_end) yang tidak ada di avatar; buang agar tidak memicu peringatan.
-  // Rotasi Hips juga dibuang: Idle memutar badan ~5° ke samping, padahal klien harus menghadap konselor.
   const clips = useMemo(
     () => animations.map((clip) => {
       const c = clip.clone()
-      c.tracks = c.tracks.filter((t) => t.name !== 'Hips.quaternion' && scene.getObjectByName(t.name.split('.')[0]))
+      c.tracks = c.tracks.filter((t) => scene.getObjectByName(t.name.split('.')[0]))
       return c
     }),
     [animations, scene],
@@ -69,8 +73,19 @@ function Avatar({ url, getSpeech, expression }) {
   const face = useRef(Object.fromEntries(FACE_MORPHS.map((n) => [n, 0])))
   const pose = useRef('Idle') // animasi tubuh yang sedang jalan: Idle, atau Talking_* saat klien bicara
 
+  const bones = useRef({})
+  const mirrorPairs = useRef([]) // [tulang kiri, tulang kanan]
+  const symmetry = useRef(1) // 1 = sisi kanan cermin sisi kiri (saat diam), 0 = mengikuti gestur bicara
   useEffect(() => {
     head.current = scene.getObjectByName('Head')
+    bones.current = Object.fromEntries(POSTURE_BONES.map((n) => [n, scene.getObjectByName(n)]))
+    const pairs = []
+    scene.traverse((o) => {
+      if (!o.isBone || !o.name.startsWith('Left')) return
+      const right = scene.getObjectByName(`Right${o.name.slice(4)}`)
+      if (right) pairs.push([o, right])
+    })
+    mirrorPairs.current = pairs
   }, [scene])
 
   useEffect(() => {
@@ -104,6 +119,28 @@ function Avatar({ url, getSpeech, expression }) {
       const target = targets[name] ?? 0
       m[name] = approach(m[name], target, target > m[name] ? 30 : 16, delta)
       setMorph(meshes, name, m[name])
+    }
+
+    // Postur tegak menghadap konselor. Animasi memutar pinggul (Idle ~5°, gestur kesal sampai 13°) dan
+    // memiringkan punggung ke samping (~5° total di Idle, diimbangi kepala) sehingga bahu tampak naik sebelah.
+    // Pinggul: putaran & kemiringan dinolkan. Punggung sampai kepala: kemiringan saja; condong depan tetap.
+    for (const name of POSTURE_BONES) {
+      const bone = bones.current[name]
+      if (!bone) continue
+      POSTURE.setFromQuaternion(bone.quaternion, 'YXZ')
+      POSTURE.z = 0
+      if (name === 'Hips') POSTURE.y = 0
+      bone.quaternion.setFromEuler(POSTURE)
+    }
+    // Saat diam, sisi kanan = cermin sisi kiri: bahu & lengan Idle tidak simetris (5–7°) sehingga badan
+    // tampak miring. Pose dasar ketiga avatar simetris sempurna, jadi cermin (x, -y, -z, w) aman.
+    // Saat bicara, gestur animasi dipakai apa adanya (perpindahan halus ~0,5 detik).
+    symmetry.current = approach(symmetry.current, pose.current === 'Idle' ? 1 : 0, 4, delta)
+    if (symmetry.current > 0.001) {
+      for (const [left, right] of mirrorPairs.current) {
+        MIRROR.set(left.quaternion.x, -left.quaternion.y, -left.quaternion.z, left.quaternion.w)
+        right.quaternion.slerp(MIRROR, symmetry.current)
+      }
     }
 
     // Anggukan & miring kecil saat bicara, ditambahkan di atas animasi tubuh (mixer menimpa rotasi Head tiap frame).
