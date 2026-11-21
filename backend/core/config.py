@@ -56,6 +56,14 @@ class Settings(BaseSettings):
     GREETING_SHORTCUT_ENABLED: bool = False
     DEBUG_INCLUDE_INTERNAL: bool = False
 
+    # Suara: STT konselor (Groq) dan TTS klien (ElevenLabs). Kunci hanya di backend.
+    GROQ_API_KEY: str = ""
+    GROQ_STT_MODEL: str = "whisper-large-v3-turbo"
+    ELEVEN_LABS_API_KEY: str = ""
+    # eleven_flash_v2_5: mendukung bahasa Indonesia, latensi rendah (~100 ms).
+    ELEVEN_LABS_TTS_MODEL: str = "eleven_flash_v2_5"
+    SPEECH_TIMEOUT_S: float = 30.0
+
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
     @field_validator(
@@ -115,6 +123,13 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+
+# Voice ID ElevenLabs per gender klien. Bukan rahasia, jadi tidak perlu di .env.
+ELEVEN_LABS_VOICES: dict[str, str] = {
+    "female": "fUesUKVrbYRcEnWoLXet",  # Citra
+    "male": "SCDJ1Fy4al0KS1awS6H9",  # Janu
+}
 
 
 _settings: Settings | None = None

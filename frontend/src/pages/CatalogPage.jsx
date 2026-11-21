@@ -5,7 +5,7 @@ import CatalogFilters from '../components/catalog/CatalogFilters'
 import CatalogHeader from '../components/catalog/CatalogHeader'
 import ScenarioGrid from '../components/catalog/ScenarioGrid'
 import { FALLBACK_SCENARIOS } from '../data/fallbackScenarios'
-import { apiUrl } from '../config'
+import { getCatalog } from '../services/scenarios'
 
 export default function CatalogPage({ onStartExercise }) {
   const navigate = useNavigate()
@@ -35,21 +35,7 @@ export default function CatalogPage({ onStartExercise }) {
     const fetchCatalog = async () => {
       setIsLoading(true)
       try {
-        const queryParams = new URLSearchParams()
-        if (searchQuery.trim()) queryParams.set('search', searchQuery.trim())
-        if (statusFilter !== 'all') queryParams.set('status', statusFilter)
-
-        const res = await fetch(
-          apiUrl(`/api/v1/scenarios/catalog?${queryParams.toString()}`),
-          {
-            headers: {
-              'X-Dev-User-Id': '1', // Peneliti default dev user
-            },
-          }
-        )
-
-        if (!res.ok) throw new Error('Gagal memuat katalog dari backend')
-        const data = await res.json()
+        const data = await getCatalog({ search: searchQuery, status: statusFilter })
 
         if (isMounted) {
           setScenarios(data.items || [])

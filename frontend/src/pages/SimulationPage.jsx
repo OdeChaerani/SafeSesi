@@ -2,10 +2,11 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import SimulationHeader from '../components/simulation/SimulationHeader'
 import VirtualClientStage from '../components/simulation/VirtualClientStage'
-import TranscriptPanel from '../components/simulation/TranscriptPanel'
 import Button from '../components/ui/Button'
 import { FALLBACK_SCENARIOS } from '../data/fallbackScenarios'
-import { apiUrl } from '../config'
+import { endSession, getSession, sendTurn } from '../services/sessions'
+import useClientVoice from '../hooks/useClientVoice'
+import { getClientAudio } from '../services/speech'
 
 export default function SimulationPage({
   scenario: propsScenario,
@@ -46,6 +47,7 @@ export default function SimulationPage({
         name: pub.client_name,
         age: pub.client_age || scenario.clientAge || fallbackScenario.client_age,
         gender: pub.client_gender || scenario.clientGender || fallbackScenario.client_gender,
+        avatarFile: pub.client_avatar_file || scenario.client_avatar_file || null,
         role: pub.client_role || scenario.clientRole || fallbackScenario.client_role,
         maritalStatus:
           scenario.maritalStatus ||
@@ -73,6 +75,7 @@ export default function SimulationPage({
         scenario.client_gender ||
         scenario.clientGender ||
         fallbackScenario.client_gender,
+      avatarFile: scenario.client_avatar_file || null,
       role:
         scenario.client_role ||
         scenario.clientRole ||
@@ -116,15 +119,19 @@ export default function SimulationPage({
 
   const [messages, setMessages] = useState([])
   const [isProcessing, setIsProcessing] = useState(false)
-  const [clientStatus, setClientStatus] = useState('Mendengarkan aktif')
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [sessionEnded, setSessionEnded] = useState(false)
+  const [voiceError, setVoiceError] = useState(null)
+  // Ekspresi wajah avatar dari respons giliran terakhir (label kasar dari backend, bukan Client State)
+  const [clientExpression, setClientExpression] = useState('neutral')
+  const voice = useClientVoice()
+  // Jam sesi (ms sejak halaman simulasi dibuka); sama dengan asal elapsedSeconds.
+  const [sessionStart] = useState(() => Date.now())
+  const getElapsedMs = () => Date.now() - sessionStart
 
   // State untuk Panel Transkrip (Buka/Tutup & Ukuran Lebar)
-  const [isTranscriptOpen, setIsTranscriptOpen] = useState(true)
-  const [transcriptWidth, setTranscriptWidth] = useState(340)
 
-  // Ref untuk timer efek mengetik (typewriter)
+  // Fungsi pembatal animasi teks klien yang sedang berjalan (efek ketik atau mengikuti suara)
   const typingTimerRef = useRef(null)
 
   // Timer sesi aktif berjalan otomatis dari 00:00
@@ -139,7 +146,7 @@ export default function SimulationPage({
   useEffect(() => {
     return () => {
       if (typingTimerRef.current) {
-        clearInterval(typingTimerRef.current)
+        typingTimerRef.current()
       }
     }
   }, [])
@@ -154,12 +161,7 @@ export default function SimulationPage({
   useEffect(() => {
     let isMounted = true
     if (currentSessionId) {
-      fetch(apiUrl(`/api/v1/sessions/${currentSessionId}`), {
-        headers: {
-          'X-Dev-User-Id': '1',
-        },
-      })
-        .then((res) => (res.ok ? res.json() : null))
+      getSession(currentSessionId)
         .then((data) => {
           if (!isMounted || !data) return
           setSessionDetail(data)
@@ -188,58 +190,73 @@ export default function SimulationPage({
     }
   }, [currentSessionId, activeCounselorName, activeClientName])
 
-  // Menjalankan animasi efek diketik (typewriter effect) karakter per karakter
-  const typeOutResponse = (fullText) => {
-    if (typingTimerRef.current) {
-      clearInterval(typingTimerRef.current)
-    }
+  // Menampilkan jawaban klien di transkrip. Bila suara klien diputar, teks muncul mengikuti suaranya
+  // (waktu per huruf dari ElevenLabs); bila suara gagal atau menunggu izin autoplay, memakai efek ketik.
+  const showClientResponse = (fullText, turnNo) => {
+    typingTimerRef.current?.()
+    typingTimerRef.current = null
 
-    setClientStatus('Sedang berbicara...')
-    const responseTime = formatTimestamp(elapsedSeconds)
-
-    // Tambahkan entri klien kosong awal dengan isTyping: true
     setMessages((prev) => [
       ...prev,
-      {
-        sender: 'client',
-        name: activeClientName,
-        time: responseTime,
-        text: '',
-        isTyping: true,
-      },
+      { sender: 'client', name: activeClientName, time: formatTimestamp(elapsedSeconds), text: '', isTyping: true },
     ])
+    const setClientText = (text, isTyping) =>
+      setMessages((prev) => {
+        const last = prev.length - 1
+        if (last < 0 || prev[last].sender !== 'client') return prev
+        const copy = [...prev]
+        copy[last] = { ...copy[last], text, isTyping }
+        return copy
+      })
+    const finish = () => {
+      typingTimerRef.current = null
+      setClientText(fullText, false)
+      setIsProcessing(false)
+    }
 
-    let charIndex = 0
-    // Kecepatan adaptif: teks panjang diketik lebih cepat agar pengguna tidak menunggu lama
-    const charDelay = fullText.length > 200 ? 14 : fullText.length > 100 ? 18 : 22
+    const typewriter = () => {
+      let charIndex = 0
+      // Kecepatan adaptif: teks panjang diketik lebih cepat agar pengguna tidak menunggu lama
+      const charDelay = fullText.length > 200 ? 14 : fullText.length > 100 ? 18 : 22
+      const id = setInterval(() => {
+        charIndex += 1
+        if (charIndex < fullText.length) setClientText(fullText.slice(0, charIndex), true)
+        else {
+          clearInterval(id)
+          finish()
+        }
+      }, charDelay)
+      typingTimerRef.current = () => clearInterval(id)
+    }
 
-    typingTimerRef.current = setInterval(() => {
-      charIndex += 1
-      if (charIndex <= fullText.length) {
-        const partialText = fullText.slice(0, charIndex)
-        setMessages((prev) => {
-          if (prev.length === 0) return prev
-          const copy = [...prev]
-          const lastIdx = copy.length - 1
-          if (copy[lastIdx].sender === 'client') {
-            copy[lastIdx] = {
-              ...copy[lastIdx],
-              text: partialText,
-              isTyping: charIndex < fullText.length,
-            }
-          }
-          return copy
-        })
-      } else {
-        clearInterval(typingTimerRef.current)
-        typingTimerRef.current = null
-        setIsProcessing(false)
-        setClientStatus('Mendengarkan aktif')
+    const followVoice = () => {
+      let raf
+      let shown = -1
+      const tick = () => {
+        const spoken = voice.getCaption()
+        if (spoken === null) return finish() // suara selesai atau dihentikan
+        if (spoken.length !== shown) {
+          shown = spoken.length
+          setClientText(spoken, true)
+        }
+        raf = requestAnimationFrame(tick)
       }
-    }, charDelay)
+      tick()
+      typingTimerRef.current = () => cancelAnimationFrame(raf)
+    }
+
+    setVoiceError(null)
+    getClientAudio(currentSessionId, turnNo)
+      .then((speech) => voice.speak({ ...speech, text: fullText }))
+      .then((playing) => (playing ? followVoice() : typewriter()))
+      .catch((err) => {
+        setVoiceError(err.message)
+        typewriter()
+      })
   }
 
-  const handleSendMessage = async (text) => {
+  // timing (input suara): { start_ms, end_ms, words } dari STT; input teks memakai jam sesi.
+  const handleSendMessage = async (text, timing = null) => {
     const counselorMsg = {
       sender: 'counselor',
       name: activeCounselorName,
@@ -249,74 +266,28 @@ export default function SimulationPage({
 
     setMessages((prev) => [...prev, counselorMsg])
     setIsProcessing(true)
-    setClientStatus('Sedang berpikir...')
 
     if (!currentSessionId) {
       setIsProcessing(false)
-      setClientStatus('Mendengarkan aktif')
       alert('Sesi simulasi tidak valid. Silakan mulai sesi dari halaman Briefing.')
       return
     }
 
     // 100% LLM: Hubungkan langsung ke endpoint /turns di backend
     try {
-      const res = await fetch(
-        apiUrl(`/api/v1/sessions/${currentSessionId}/turns`),
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Dev-User-Id': '1',
-          },
-          body: JSON.stringify({
-            content: text,
-            start_ms: elapsedSeconds * 1000,
-            end_ms: (elapsedSeconds + 1) * 1000,
-          }),
-        }
+      const data = await sendTurn(
+        currentSessionId,
+        timing
+          ? { content: text, ...timing }
+          : { content: text, start_ms: elapsedSeconds * 1000, end_ms: (elapsedSeconds + 1) * 1000 }
       )
-
-      if (res.ok) {
-        const data = await res.json()
-        typeOutResponse(data.content)
-      } else {
-        let errorMsg = 'Layanan AI sedang mengalami kendala teknis.'
-        try {
-          const errData = await res.json()
-          if (errData.detail) errorMsg = errData.detail
-        } catch {
-          // ignore
-        }
-        setIsProcessing(false)
-        setClientStatus('Mendengarkan aktif')
-        alert(`Kendala Layanan AI: ${errorMsg}`)
-      }
+      setClientExpression(data.expression || 'neutral')
+      showClientResponse(data.content, data.turn_no)
     } catch (err) {
-      console.error('Gagal terhubung ke backend LLM:', err)
+      console.error('Gagal mengirim giliran:', err)
       setIsProcessing(false)
-      setClientStatus('Mendengarkan aktif')
-      alert('Tidak dapat terhubung ke server backend. Pastikan server backend sedang aktif.')
+      alert(err.status === 0 ? err.message : `Kendala Layanan AI: ${err.message}`)
     }
-  }
-
-  const handleStartResize = (e) => {
-    e.preventDefault()
-    const startX = e.clientX
-    const startWidth = transcriptWidth
-
-    const handleMouseMove = (moveEvent) => {
-      const delta = startX - moveEvent.clientX
-      const newWidth = Math.min(Math.max(startWidth + delta, 260), 560)
-      setTranscriptWidth(newWidth)
-    }
-
-    const handleMouseUp = () => {
-      window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('mouseup', handleMouseUp)
-    }
-
-    window.addEventListener('mousemove', handleMouseMove)
-    window.addEventListener('mouseup', handleMouseUp)
   }
 
   const handleConfirmExit = async () => {
@@ -327,20 +298,12 @@ export default function SimulationPage({
     ) {
       if (currentSessionId) {
         try {
-          await fetch(
-            apiUrl(`/api/v1/sessions/${currentSessionId}/end`),
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-Dev-User-Id': '1',
-              },
-            }
-          )
+          await endSession(currentSessionId)
         } catch (e) {
           console.warn('Gagal mengakhiri sesi di backend:', e)
         }
       }
+      voice.stop()
       if (onExitSession) {
         onExitSession()
       } else {
@@ -351,7 +314,7 @@ export default function SimulationPage({
 
   if (sessionEnded) {
     return (
-      <div className="w-full h-screen flex items-center justify-center bg-[#352f55] p-4">
+      <div className="w-full h-screen flex items-center justify-center bg-[#f4efe7] p-4">
         <div className="bg-white p-6 md:p-8 rounded-2xl shadow-xs border border-slate-100 flex flex-col items-center text-center gap-3 max-w-md">
           <div className="w-12 h-12 rounded-xl bg-[#ede9fe] text-[#352f55] flex items-center justify-center">
             <span className="material-symbols-outlined text-[28px]">task_alt</span>
@@ -376,39 +339,40 @@ export default function SimulationPage({
   }
 
   return (
-    <div className="w-full h-screen flex flex-col bg-[#352f55] text-white overflow-hidden select-none">
+    <div className="w-full h-screen flex flex-col bg-[#f4efe7] text-[#1e1a34] overflow-hidden select-none">
       {/* 1. Header Bar: Navbar Putih dengan Timer di samping tombol Akhiri Sesi */}
       <SimulationHeader
         scenarioTitle={activeTitle}
         category={activeCategory}
         elapsedSeconds={elapsedSeconds}
         onExitSession={handleConfirmExit}
-        isTranscriptOpen={isTranscriptOpen}
-        onToggleTranscript={() => setIsTranscriptOpen((prev) => !prev)}
       />
 
-      {/* 2. Workspace Area: Background Ungu Beranda (#352f55) */}
-      <div className="flex-1 flex flex-col md:flex-row relative w-full h-[calc(100vh-56px)] overflow-hidden bg-[#352f55]">
+      {/* 2. Workspace Area (tema terang) */}
+      <div className="flex-1 flex flex-col md:flex-row relative w-full h-[calc(100vh-56px)] overflow-hidden bg-[#f4efe7]">
         {/* Central Stage */}
         <VirtualClientStage
           client={clientInfo}
           clientName={activeClientName}
-          clientStatus={clientStatus}
           onSendMessage={handleSendMessage}
           isProcessing={isProcessing}
-          isTranscriptOpen={isTranscriptOpen}
-          onOpenTranscript={() => setIsTranscriptOpen(true)}
+          messages={messages}
+          sessionId={currentSessionId}
+          getElapsedMs={getElapsedMs}
+          voice={voice}
+          expression={clientExpression}
         />
 
-        {/* Right Transcript Panel: Collapsible & Resizable */}
-        {isTranscriptOpen && (
-          <TranscriptPanel
-            messages={messages}
-            width={transcriptWidth}
-            onClose={() => setIsTranscriptOpen(false)}
-            onStartResize={handleStartResize}
-          />
+        {voiceError && (
+          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 bg-white text-[#1e1a34] text-xs px-3 py-2 rounded-xl shadow-xl border border-amber-200" role="alert">
+            <span className="material-symbols-outlined text-[16px] text-amber-600">volume_off</span>
+            <span>{voiceError}</span>
+            <button type="button" onClick={() => setVoiceError(null)} className="text-slate-400 hover:text-slate-600" aria-label="Tutup">
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          </div>
         )}
+
       </div>
     </div>
   )

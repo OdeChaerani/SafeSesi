@@ -5,8 +5,6 @@ export default function SimulationHeader({
   category = 'Latihan Kelas',
   elapsedSeconds,
   onExitSession,
-  isTranscriptOpen = true,
-  onToggleTranscript,
 }) {
   const [internalSeconds, setInternalSeconds] = useState(0)
 
@@ -47,21 +45,8 @@ export default function SimulationHeader({
         </div>
       </div>
 
-      {/* Right Section: Timer directly next to Akhiri Sesi + Transcript Toggle */}
+      {/* Right Section: Timer directly next to Akhiri Sesi */}
       <div className="flex items-center gap-2.5">
-        {/* Toggle Transkrip Button (ketika panel tertutup) */}
-        {!isTranscriptOpen && onToggleTranscript && (
-          <button
-            type="button"
-            onClick={onToggleTranscript}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#352f55] border border-slate-200/80 text-xs font-semibold transition-colors cursor-pointer"
-            title="Buka Panel Transkrip"
-          >
-            <span className="material-symbols-outlined text-[16px]">forum</span>
-            <span className="hidden sm:inline">Buka Transkrip</span>
-          </button>
-        )}
-
         {/* Timer Sesi Aktif */}
         <div className="flex items-center gap-2 bg-slate-100 border border-slate-200/80 px-3 py-1 rounded-full shadow-xs">
           <span className="relative flex h-2 w-2">

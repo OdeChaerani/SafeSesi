@@ -87,3 +87,12 @@ def format_timing(record: dict[str, Any]) -> str:
     if statuses:
         parts.append(statuses)
     return " | ".join(parts)
+
+
+def log_speech_timing(kind: str, session_id: int, duration_ms: float, **extra: Any) -> dict[str, Any]:
+    """Satu baris log untuk STT/TTS (permintaan terpisah dari giliran), mis. "stt sesi 24 1.2s | words 9"."""
+    record: dict[str, Any] = {"event": f"{kind}_timing", "session_id": session_id, f"{kind}_ms": duration_ms, **extra}
+    details = ", ".join(f"{k} {v}" for k, v in extra.items())
+    message = f"{kind} sesi {session_id} {duration_ms / 1000:.1f}s" + (f" | {details}" if details else "")
+    timing_logger.info(message, extra={"timing": record})
+    return record

@@ -297,6 +297,7 @@ async def send_counselor_turn(
                 end_ms=payload.end_ms,
                 turn_lock=turn_lock,
                 lock_wait_ms=lock_wait_ms,
+                word_timestamps=[w.model_dump() for w in payload.words] if payload.words else None,
             )
         except LLMServiceError as exc:
             raise HTTPException(
