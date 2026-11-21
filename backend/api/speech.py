@@ -9,7 +9,7 @@ from typing import Any
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
-from api.deps import get_current_user, get_db, verify_session_ownership
+from api.deps import ensure_can_view_session, ensure_session_owner, get_current_user, get_db
 from core.config import get_settings
 from repositories.sessions import get_session_by_id
 from repositories.turns import get_turn
@@ -20,11 +20,10 @@ from services.speech.tts import synthesize
 router = APIRouter(prefix="/sessions", tags=["speech"])
 
 
-async def _load_owned_session(conn: asyncpg.Connection, session_id: int, user: dict[str, Any]) -> dict[str, Any]:
+async def _load_session(conn: asyncpg.Connection, session_id: int) -> dict[str, Any]:
     session = await get_session_by_id(conn, session_id)
     if not session:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Sesi dengan ID {session_id} tidak ditemukan.")
-    verify_session_ownership(session, user)
     return session
 
 
@@ -44,7 +43,8 @@ async def transcribe_counselor_audio(
 
     Audio hanya ada di memori selama permintaan ini dan tidak disimpan (BRD 7.1 no. 7).
     """
-    session = await _load_owned_session(conn, session_id, user)
+    session = await _load_session(conn, session_id)
+    ensure_session_owner(session, user)  # hanya mahasiswa pemilik yang mengirim suara ke sesinya
     if session["status"] == "completed":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Sesi latihan ini sudah selesai.")
     content_type = request.headers.get("content-type", "")
@@ -80,7 +80,8 @@ async def client_turn_audio(
 
     Hanya teks giliran klien yang tersimpan yang disintesis, bukan teks bebas.
     """
-    session = await _load_owned_session(conn, session_id, user)
+    session = await _load_session(conn, session_id)
+    await ensure_can_view_session(conn, session, user)
     turn = await get_turn(conn, session_id, turn_no)
     if not turn or turn["speaker"] != "client":
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Giliran klien tidak ditemukan.")

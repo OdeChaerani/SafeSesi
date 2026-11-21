@@ -17,6 +17,7 @@ DECLARE
     v_rina_id bigint;
     v_sari_id bigint;
     v_student_id bigint;
+    v_admin_id bigint;
     v_class_id bigint;
 BEGIN
     -- =================================================================
@@ -25,8 +26,20 @@ BEGIN
     SELECT id INTO v_owner_id FROM public.users WHERE lower(email) = 'peneliti@safesesi.ac.id';
     IF v_owner_id IS NULL THEN
         INSERT INTO public.users (name, email, role, password_hash, activated_at)
-        VALUES ('Peneliti SafeSesi', 'peneliti@safesesi.ac.id', 'lecturer'::public.user_role, NULL, now())
+        VALUES (
+            'Peneliti SafeSesi',
+            'peneliti@safesesi.ac.id',
+            'lecturer'::public.user_role,
+            -- password123 (argon2id)
+            '$argon2id$v=19$m=65536,t=3,p=4$NizDYlQ2wPLLLwQqQzXorw$MH6Zlm0XEQkgLV/rPrHJV7ZtedftBXm+jVqopBIP6eI',
+            now()
+        )
         RETURNING id INTO v_owner_id;
+    ELSE
+        UPDATE public.users
+        SET password_hash = '$argon2id$v=19$m=65536,t=3,p=4$NizDYlQ2wPLLLwQqQzXorw$MH6Zlm0XEQkgLV/rPrHJV7ZtedftBXm+jVqopBIP6eI',
+            activated_at = COALESCE(activated_at, now())
+        WHERE id = v_owner_id;
     END IF;
 
     -- =================================================================
@@ -304,15 +317,43 @@ BEGIN
     END IF;
 
     -- =================================================================
-    -- 6. DATA UJI LOKAL: mahasiswa uji, kelas uji, dan keanggotaan kelas
-    -- Password KHUSUS PENGEMBANGAN. verify_password masih stub (membandingkan teks
-    -- polos dengan password_hash), jadi kolom ini berisi teks polos sampai inkremen login.
+    -- 6. DATA UJI LOKAL: mahasiswa uji, admin uji, kelas uji, dan keanggotaan kelas
+    -- Password KHUSUS PENGEMBANGAN: 'password123' (hash argon2id)
     -- =================================================================
     SELECT id INTO v_student_id FROM public.users WHERE lower(email) = 'mahasiswa.uji@safesesi.local' AND deleted_at IS NULL;
     IF v_student_id IS NULL THEN
         INSERT INTO public.users (name, email, role, password_hash, activated_at)
-        VALUES ('Mahasiswa Uji (DEV)', 'mahasiswa.uji@safesesi.local', 'student'::public.user_role, 'dev-only-password-jangan-dipakai', now())
+        VALUES (
+            'Mahasiswa Uji (DEV)',
+            'mahasiswa.uji@safesesi.local',
+            'student'::public.user_role,
+            '$argon2id$v=19$m=65536,t=3,p=4$NizDYlQ2wPLLLwQqQzXorw$MH6Zlm0XEQkgLV/rPrHJV7ZtedftBXm+jVqopBIP6eI',
+            now()
+        )
         RETURNING id INTO v_student_id;
+    ELSE
+        UPDATE public.users
+        SET password_hash = '$argon2id$v=19$m=65536,t=3,p=4$NizDYlQ2wPLLLwQqQzXorw$MH6Zlm0XEQkgLV/rPrHJV7ZtedftBXm+jVqopBIP6eI',
+            activated_at = COALESCE(activated_at, now())
+        WHERE id = v_student_id;
+    END IF;
+
+    SELECT id INTO v_admin_id FROM public.users WHERE lower(email) = 'admin.uji@safesesi.local' AND deleted_at IS NULL;
+    IF v_admin_id IS NULL THEN
+        INSERT INTO public.users (name, email, role, password_hash, activated_at)
+        VALUES (
+            'Admin Uji (DEV)',
+            'admin.uji@safesesi.local',
+            'admin'::public.user_role,
+            '$argon2id$v=19$m=65536,t=3,p=4$NizDYlQ2wPLLLwQqQzXorw$MH6Zlm0XEQkgLV/rPrHJV7ZtedftBXm+jVqopBIP6eI',
+            now()
+        )
+        RETURNING id INTO v_admin_id;
+    ELSE
+        UPDATE public.users
+        SET password_hash = '$argon2id$v=19$m=65536,t=3,p=4$NizDYlQ2wPLLLwQqQzXorw$MH6Zlm0XEQkgLV/rPrHJV7ZtedftBXm+jVqopBIP6eI',
+            activated_at = COALESCE(activated_at, now())
+        WHERE id = v_admin_id;
     END IF;
 
     SELECT id INTO v_class_id FROM public.classes WHERE name = 'Kelas Uji Pengembangan (DEV)' AND academic_year = '2026/2027' AND deleted_at IS NULL;

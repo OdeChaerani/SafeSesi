@@ -57,11 +57,12 @@ class TestSecurity(BaseTestCase):
         self.assertEqual(ctx.exception.status_code, 403)
         self.assertIn("izin", ctx.exception.detail)
 
+    @patch("api.deps.lecturer_manages_session", new_callable=AsyncMock, return_value=True)
     @patch("api.sessions.get_session_turns")
     @patch("api.sessions.get_latest_topic_notes")
-    def test_lecturer_review_access_permitted(self, mock_notes, mock_turns):
-        """Memastikan Dosen/Admin diizinkan meninjau sesi mahasiswa (Review access)."""
-        self.mock_conn.fetchrow.return_value = self.session_a
+    def test_lecturer_review_access_permitted(self, mock_notes, mock_turns, _manages):
+        """Dosen boleh meninjau sesi KELAS yang dikelolanya (sesi mandiri diuji di test_access.py)."""
+        self.mock_conn.fetchrow.return_value = {**self.session_a, "class_id": 3}
         mock_turns.return_value = []
         mock_notes.return_value = []
 

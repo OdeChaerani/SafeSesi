@@ -4,7 +4,7 @@ from typing import Any, Literal
 import asyncpg
 from fastapi import APIRouter, Depends, Query
 
-from api.deps import get_current_user, get_db
+from api.deps import get_db, require_role
 from repositories.scenarios import get_catalog_scenarios
 from schemas.scenario import CatalogScenarioResponse
 
@@ -20,7 +20,7 @@ async def list_catalog_scenarios(
         default="all",
         description="Filter status latihan: all | unattempted | attempted",
     ),
-    user: dict[str, Any] = Depends(get_current_user),
+    user: dict[str, Any] = Depends(require_role("student")),
     conn: asyncpg.Connection = Depends(get_db),
 ) -> Any:
     """Mengambil daftar skenario latihan mandiri (katalog umum) beserta status pengerjaan mahasiswa."""

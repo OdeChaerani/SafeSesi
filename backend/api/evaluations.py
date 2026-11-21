@@ -5,13 +5,12 @@ from typing import Any
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
-from api.deps import get_current_user, get_db
+from api.deps import ensure_can_view_session, ensure_session_owner, get_current_user, get_db, is_reviewer
 from core.config import get_settings
 from repositories.evaluations import (
     claim_evaluation,
     get_evaluation_by_session,
     get_evaluation_details,
-    lecturer_manages_session,
     mark_evaluation_failed,
     save_evaluation_results,
 )
@@ -95,8 +94,7 @@ async def start_evaluation(
 ) -> dict[str, Any]:
     """Mulai evaluasi sesi milik pemanggil yang sudah selesai; evaluasi yang ada dikembalikan."""
     session = await _load_session(conn, session_id)
-    if session["student_id"] != user.get("id"):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Evaluasi hanya dapat dimulai oleh pemilik sesi.")
+    ensure_session_owner(session, user)  # hanya mahasiswa pemilik yang memulai evaluasi
     if session["status"] != "completed":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Sesi belum selesai; akhiri sesi sebelum dievaluasi.")
 
@@ -111,19 +109,6 @@ async def start_evaluation(
     return status_payload(evaluation)
 
 
-async def _authorize_view(conn: asyncpg.Connection, session: dict[str, Any], user: dict[str, Any]) -> bool:
-    """Mahasiswa: sesi sendiri. Dosen: sesi kelas yang dikelolanya. Admin: semua. Return: is_reviewer."""
-    role = user.get("role")
-    if role == "admin":
-        return True
-    if role == "lecturer":
-        if session.get("class_id") and await lecturer_manages_session(conn, session["id"], user["id"]):
-            return True
-    elif session["student_id"] == user.get("id"):
-        return False
-    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Anda tidak memiliki izin melihat evaluasi sesi ini.")
-
-
 @router.get("/{session_id}/evaluation")
 async def get_evaluation(
     session_id: int,
@@ -131,7 +116,8 @@ async def get_evaluation(
     user: dict[str, Any] = Depends(get_current_user),
 ) -> dict[str, Any]:
     session = await _load_session(conn, session_id)
-    is_reviewer = await _authorize_view(conn, session, user)
+    # Mahasiswa: sesi sendiri. Dosen: sesi kelas yang dikelolanya. Admin: tidak (BRD 7.1 no. 16, BRD 5).
+    await ensure_can_view_session(conn, session, user)
     evaluation = await get_evaluation_by_session(conn, session_id)
     if not evaluation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evaluasi untuk sesi ini belum dibuat.")
@@ -157,6 +143,6 @@ async def get_evaluation(
         processes=[{**p, "evidence_found": p["start_turn_no"] is not None} for p in details["processes"]],
         feedback=details["feedback"],
     )
-    if is_reviewer:
+    if is_reviewer(user):
         payload["coding_debug"] = evaluation.get("coding_debug")
     return payload

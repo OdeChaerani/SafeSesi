@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 from fastapi import HTTPException
 
 from api.sessions import get_briefing_topics, get_session_detail, student_visible_topics
@@ -91,10 +91,12 @@ class TestBriefingTopics(BaseTestCase):
     @patch("api.sessions.get_latest_topic_notes")
     @patch("api.sessions.get_session_by_id")
     def test_briefing_topics_lecturer_sees_all(self, mock_get_sess, mock_notes):
-        mock_get_sess.return_value = self.parent
+        # Dosen hanya melihat sesi kelas yang dikelolanya; di sana ia melihat semua topik.
+        mock_get_sess.return_value = {**self.parent, "class_id": 3}
         mock_notes.return_value = PARENT_NOTES
 
-        res = self.run_async(get_briefing_topics(session_id=PARENT_ID, user=self.lecturer, conn=self.conn))
+        with patch("api.deps.lecturer_manages_session", AsyncMock(return_value=True)):
+            res = self.run_async(get_briefing_topics(session_id=PARENT_ID, user=self.lecturer, conn=self.conn))
 
         self.assertEqual(len(res["topics"]), 4)
         self.assertIn("JUDUL-RAHASIA-H2", json.dumps(res))
@@ -144,11 +146,12 @@ class TestBriefingTopics(BaseTestCase):
     @patch("api.sessions.get_latest_topic_notes")
     @patch("api.sessions.get_session_by_id")
     def test_continue_session_detail_lecturer_sees_all(self, mock_get_sess, mock_notes, mock_turns):
-        mock_get_sess.return_value = self.child
+        mock_get_sess.return_value = {**self.child, "class_id": 3}
         mock_notes.return_value = PARENT_NOTES
         mock_turns.return_value = []
 
-        detail = self.run_async(get_session_detail(session_id=CHILD_ID, user=self.lecturer, conn=self.conn))
+        with patch("api.deps.lecturer_manages_session", AsyncMock(return_value=True)):
+            detail = self.run_async(get_session_detail(session_id=CHILD_ID, user=self.lecturer, conn=self.conn))
 
         self.assertEqual(len(detail["previous_topics"]), 4)
         self.assertEqual(len(detail["topics"]), 4)

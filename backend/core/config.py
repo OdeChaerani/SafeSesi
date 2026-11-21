@@ -10,6 +10,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 
 
+# Hanya untuk development lokal; production menolak start dengan nilai ini (lihat validate_auth_settings).
+DEV_JWT_SECRET = "dev-only-jwt-secret-ganti-di-production"
+
+
 class Settings(BaseSettings):
     """Konfigurasi global backend SafeSesi menggunakan pydantic-settings."""
 
@@ -64,7 +68,20 @@ class Settings(BaseSettings):
     ELEVEN_LABS_TTS_MODEL: str = "eleven_flash_v2_5"
     SPEECH_TIMEOUT_S: float = 30.0
 
+    # Origin frontend yang boleh memanggil API dengan cookie (allow_credentials). Harus spesifik, bukan "*".
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
+
+    # Autentikasi. JWT_SECRET wajib diisi nilai acak panjang di luar development (startup gagal bila tidak).
+    JWT_SECRET: str = DEV_JWT_SECRET
+    ACCESS_TOKEN_MINUTES: int = 15
+    REFRESH_TOKEN_DAYS: int = 7  # sama dengan purge_old_refresh_tokens(days=7)
+    ACTIVATION_TOKEN_HOURS: int = 72
+    # Alamat frontend untuk menyusun tautan aktivasi akun.
+    FRONTEND_URL: str = "http://localhost:5173"
+
+    @property
+    def is_development(self) -> bool:
+        return self.APP_ENV.strip().lower() == "development"
 
     @field_validator(
         "GEMINI_MODEL_STATE",
@@ -117,6 +134,22 @@ class Settings(BaseSettings):
         elif isinstance(v, list):
             return v
         return ["http://localhost:5173", "http://127.0.0.1:5173"]
+
+    @field_validator("CORS_ORIGINS")
+    @classmethod
+    def reject_wildcard_origin(cls, v: list[str]) -> list[str]:
+        # Cookie refresh token dikirim dengan credentials; browser menolak "*" bersama credentials,
+        # dan origin bebas berarti situs mana pun bisa memakai sesi pengguna.
+        if any(o.strip() == "*" for o in v):
+            raise ValueError("CORS_ORIGINS tidak boleh '*'; tulis origin frontend secara spesifik.")
+        return v
+
+    def validate_auth_settings(self) -> None:
+        """Dipanggil saat startup: di luar development, JWT_SECRET harus diganti dan cukup panjang."""
+        if self.is_development:
+            return
+        if self.JWT_SECRET == DEV_JWT_SECRET or len(self.JWT_SECRET) < 32:
+            raise ValueError("JWT_SECRET wajib diisi nilai acak minimal 32 karakter di luar APP_ENV=development.")
 
     model_config = SettingsConfigDict(
         env_file=str(ENV_PATH) if ENV_PATH.exists() else None,

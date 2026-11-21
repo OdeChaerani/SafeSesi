@@ -112,7 +112,7 @@ class TestGetEvaluation(BaseTestCase):
             patch("api.evaluations.get_session_by_id", AsyncMock(return_value=sess)),
             patch("api.evaluations.get_evaluation_by_session", AsyncMock(return_value=ev)),
             patch("api.evaluations.get_evaluation_details", AsyncMock(return_value=DETAILS)),
-            patch("api.evaluations.lecturer_manages_session", AsyncMock(return_value=manages)),
+            patch("api.deps.lecturer_manages_session", AsyncMock(return_value=manages)),
         )
 
     def run_with(self, user, sess, ev, manages=False):
@@ -152,9 +152,13 @@ class TestGetEvaluation(BaseTestCase):
         res = self.run_with(lecturer, session(class_id=3), evaluation(), manages=True)
         self.assertIn("coding_debug", res)
 
-    def test_admin_sees_all(self):
-        res = self.run_with(self.get_sample_user(user_id=1, role="admin"), session(), evaluation())
-        self.assertIn("coding_debug", res)
+    def test_admin_cannot_view_evaluation(self):
+        # BRD 7.1 no. 16 & BRD 5: admin mengelola akun dan kelas, tidak membuka hasil latihan.
+        admin = self.get_sample_user(user_id=1, role="admin")
+        for sess in (session(), session(class_id=3)):
+            with self.assertRaises(HTTPException) as ctx:
+                self.run_with(admin, sess, evaluation(), manages=True)
+            self.assertEqual(ctx.exception.status_code, 403)
 
     def test_running_returns_status_only(self):
         res = self.run_with(self.get_sample_user(user_id=10), session(), evaluation("running"))

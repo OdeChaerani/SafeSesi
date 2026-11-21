@@ -5,7 +5,7 @@ from typing import Any
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from api.deps import get_current_user, get_db, verify_session_ownership
+from api.deps import ensure_can_view_session, ensure_session_owner, get_current_user, get_db, is_reviewer, require_role
 from core.errors import LLMServiceError
 from repositories.client_state import get_latest_client_state, save_client_state
 from repositories.scenarios import (
@@ -38,10 +38,6 @@ from services.simulation.turn_lock import (
 )
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
-
-
-def is_reviewer(user: dict[str, Any]) -> bool:
-    return user.get("role") in ("admin", "lecturer")
 
 
 def student_visible_topics(topic_notes: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -85,7 +81,7 @@ def to_public_session(session: dict[str, Any]) -> dict[str, Any]:
 @router.post("", response_model=SessionResponse, status_code=status.HTTP_201_CREATED)
 async def create_new_session(
     payload: CreateSessionRequest,
-    user: dict[str, Any] = Depends(get_current_user),
+    user: dict[str, Any] = Depends(require_role("student")),
     conn: asyncpg.Connection = Depends(get_db),
 ) -> Any:
     """Membuat sesi simulasi konseling baru (new, repeat, atau continue) dalam SATU transaksi atomik."""
@@ -194,7 +190,7 @@ async def get_session_detail(
 ) -> dict[str, Any]:
     """Mengambil detail sesi konseling dan riwayat turns.
 
-    - topics (topik sesi ini, memuat judul hidden facts): hanya untuk dosen/admin.
+    - topics (topik sesi ini, memuat judul hidden facts): hanya untuk dosen kelas sesi itu.
     - previous_topics: catatan topik sesi induk untuk sesi lanjutan (BRD 6.1.2).
       Mahasiswa hanya menerima topik berdeskripsi; sesi tanpa induk -> [].
     """
@@ -205,7 +201,7 @@ async def get_session_detail(
             detail=f"Sesi dengan ID {session_id} tidak ditemukan.",
         )
 
-    verify_session_ownership(session, user)
+    await ensure_can_view_session(conn, session, user)
 
     detail = to_public_session(session)
     detail["turns"] = await get_session_turns(conn, session_id)
@@ -237,7 +233,7 @@ async def get_briefing_topics(
             detail=f"Sesi dengan ID {session_id} tidak ditemukan.",
         )
 
-    verify_session_ownership(session, user)
+    await ensure_can_view_session(conn, session, user)
 
     return {
         "session_id": session_id,
@@ -260,7 +256,7 @@ async def send_counselor_turn(
             detail=f"Sesi dengan ID {session_id} tidak ditemukan.",
         )
 
-    verify_session_ownership(session, user)
+    ensure_session_owner(session, user)
 
     if session["status"] == "completed":
         raise HTTPException(
@@ -320,7 +316,7 @@ async def end_active_session(
             detail=f"Sesi dengan ID {session_id} tidak ditemukan.",
         )
 
-    verify_session_ownership(session, user)
+    ensure_session_owner(session, user)
 
     if session["status"] == "completed":
         return {

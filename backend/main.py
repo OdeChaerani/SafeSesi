@@ -31,6 +31,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Lifespan context manager untuk mengelola asyncpg connection pool."""
     settings = get_settings()
     pool: asyncpg.Pool | None = None
+    # Di luar development, JWT_SECRET bawaan/lemah membuat startup gagal (tidak ada fallback diam-diam).
+    settings.validate_auth_settings()
 
     # Validasi model + thinking budget per peran sebelum resource lain dibuat.
     # LLMConfigRejected dibiarkan lolos: startup gagal dengan pesan peran/model/budget.
