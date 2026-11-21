@@ -1,24 +1,26 @@
 import { useState } from 'react'
 
-export default function LoginForm({ onSubmit, isLoading = false }) {
-  const [username, setUsername] = useState('180110230045')
-  const [password, setPassword] = useState('••••••••')
+export default function LoginForm({ onSubmit, isLoading = false, error: propError = '' }) {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState('')
+  const [localError, setLocalError] = useState('')
+
+  const error = propError || localError
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!username.trim()) {
-      setError('Harap masukkan Username atau NIM Anda.')
+    if (!email.trim()) {
+      setLocalError('Harap masukkan alamat email Anda.')
       return
     }
     if (!password) {
-      setError('Harap masukkan kata sandi Anda.')
+      setLocalError('Harap masukkan kata sandi Anda.')
       return
     }
-    setError('')
+    setLocalError('')
     if (onSubmit) {
-      onSubmit({ username, password })
+      onSubmit({ email: email.trim(), password })
     }
   }
 
@@ -51,28 +53,28 @@ export default function LoginForm({ onSubmit, isLoading = false }) {
 
       {/* Login Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Username / NIM */}
+        {/* Email */}
         <div>
           <label
-            htmlFor="username"
+            htmlFor="email"
             className="block text-xs font-semibold text-[#1e1a34] mb-1.5"
           >
-            Username / NIM
+            Email
           </label>
           <div className="relative rounded-xl shadow-xs">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-              <span className="material-symbols-outlined text-[18px]">badge</span>
-            </div>
             <input
-              id="username"
-              name="username"
-              type="text"
-              autoComplete="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Contoh: 180110230045"
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value)
+                if (localError) setLocalError('')
+              }}
+              placeholder="nama@mail.unpad.ac.id"
               required
-              className="w-full h-10 pl-9 pr-3.5 bg-slate-50 text-[#1e1a34] text-xs sm:text-sm rounded-xl border border-slate-200 placeholder-slate-400 outline-none transition focus:bg-white focus:border-[#352f55] focus:ring-1 focus:ring-[#352f55]"
+              className="w-full h-10 px-3.5 bg-slate-50 text-[#1e1a34] text-xs sm:text-sm rounded-xl border border-slate-200 placeholder-slate-400 outline-none transition focus:bg-white focus:border-[#352f55] focus:ring-1 focus:ring-[#352f55]"
             />
           </div>
         </div>
@@ -88,19 +90,19 @@ export default function LoginForm({ onSubmit, isLoading = false }) {
             </label>
           </div>
           <div className="relative rounded-xl shadow-xs">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-              <span className="material-symbols-outlined text-[18px]">key</span>
-            </div>
             <input
               id="password"
               name="password"
               type={showPassword ? 'text' : 'password'}
               autoComplete="current-password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value)
+                if (localError) setLocalError('')
+              }}
               placeholder="Masukkan kata sandi akun"
               required
-              className="w-full h-10 pl-9 pr-10 bg-slate-50 text-[#1e1a34] text-xs sm:text-sm rounded-xl border border-slate-200 placeholder-slate-400 outline-none transition focus:bg-white focus:border-[#352f55] focus:ring-1 focus:ring-[#352f55]"
+              className="w-full h-10 pl-3.5 pr-10 bg-slate-50 text-[#1e1a34] text-xs sm:text-sm rounded-xl border border-slate-200 placeholder-slate-400 outline-none transition focus:bg-white focus:border-[#352f55] focus:ring-1 focus:ring-[#352f55]"
             />
             <button
               type="button"
@@ -137,12 +139,12 @@ export default function LoginForm({ onSubmit, isLoading = false }) {
       {/* Card Footer */}
       <div className="mt-5 pt-3.5 border-t border-slate-100 text-center">
         <p className="text-[11px] text-slate-500 leading-relaxed">
-          Akun diberikan oleh Pengelola / Admin Praktikum.
+          Akun dibuatkan oleh Pengelola / Admin Praktikum.
           <br />
           Lupa kata sandi?
           <button
             type="button"
-            onClick={() => alert('Silakan hubungi staf admin laboratorium konseling untuk reset kata sandi.')}
+            onClick={() => alert('Silakan hubungi staf admin laboratorium konseling untuk meminta reset kata sandi.')}
             className="font-semibold text-[#7b5800] underline hover:text-[#5d4200] transition ml-1 cursor-pointer"
           >
             Hubungi Admin
@@ -152,4 +154,3 @@ export default function LoginForm({ onSubmit, isLoading = false }) {
     </div>
   )
 }
-

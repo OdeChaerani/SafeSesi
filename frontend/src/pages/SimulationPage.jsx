@@ -9,6 +9,7 @@ import useClientVoice from '../hooks/useClientVoice'
 import { getClientAudio } from '../services/speech'
 
 export default function SimulationPage({
+  user,
   scenario: propsScenario,
   onExitSession,
 }) {
@@ -103,19 +104,8 @@ export default function SimulationPage({
     scenario.category ||
     (sessionDetail?.class_id ? 'Latihan Kelas' : 'Latihan Mandiri')
 
-  // Mengambil nama konselor yang sedang login atau fallback
-  const activeCounselorName = (() => {
-    try {
-      const raw = localStorage.getItem('safesesi_auth_user')
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        return parsed.username || 'Rani Aulia'
-      }
-    } catch {
-      // ignore
-    }
-    return 'Rani Aulia'
-  })()
+  // Nama konselor = akun yang sedang masuk (dikirim App lewat prop user)
+  const activeCounselorName = user?.name || 'Konselor'
 
   const [messages, setMessages] = useState([])
   const [isProcessing, setIsProcessing] = useState(false)

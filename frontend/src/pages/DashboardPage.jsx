@@ -4,7 +4,7 @@ import StatCards from '../components/dashboard/StatCards'
 import ClassActivities from '../components/dashboard/ClassActivities'
 import RecentHistory from '../components/dashboard/RecentHistory'
 
-export default function DashboardPage({ onStartExercise }) {
+export default function DashboardPage({ user, onStartExercise }) {
   const navigate = useNavigate()
 
   const handleStartExercise = (activity) => {
@@ -26,10 +26,12 @@ export default function DashboardPage({ onStartExercise }) {
     console.log('Aksi riwayat:', item.actionLabel, item.title)
   }
 
+  const displayName = user?.name ? user.name.split(' ')[0] : 'Mahasiswa'
+
   return (
     <>
       {/* 1. Header Sambutan Personal */}
-      <WelcomeBanner userName="Rani" />
+      <WelcomeBanner userName={displayName} />
 
       {/* 2. 4 Kartu Statistik */}
       <StatCards />

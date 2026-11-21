@@ -1,11 +1,25 @@
+import { useState } from 'react'
 import AuthBackground from '../components/auth/AuthBackground'
 import AuthHero from '../components/auth/AuthHero'
 import LoginForm from '../components/auth/LoginForm'
+import { login } from '../services/auth'
 
-export default function LoginPage({ onLogin }) {
-  const handleLoginSubmit = (credentials) => {
-    if (onLogin) {
-      onLogin(credentials)
+export default function LoginPage({ onLoginSuccess }) {
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleLoginSubmit = async ({ email, password }) => {
+    setIsLoading(true)
+    setError('')
+    try {
+      const data = await login(email, password)
+      if (onLoginSuccess) {
+        onLoginSuccess(data.user)
+      }
+    } catch (err) {
+      setError(err.message || 'Email atau kata sandi salah.')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -20,10 +34,13 @@ export default function LoginPage({ onLogin }) {
 
         {/* 3. Right Column: Authentication Card */}
         <section className="flex-1 flex items-center justify-center p-6 sm:p-10 lg:p-12 xl:p-16 relative overflow-hidden z-10">
-          <LoginForm onSubmit={handleLoginSubmit} />
+          <LoginForm
+            onSubmit={handleLoginSubmit}
+            isLoading={isLoading}
+            error={error}
+          />
         </section>
       </div>
     </main>
   )
 }
-

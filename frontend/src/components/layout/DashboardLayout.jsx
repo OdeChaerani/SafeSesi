@@ -4,6 +4,7 @@ import Sidebar from './Sidebar'
 
 export default function DashboardLayout({
   children,
+  user,
   activeTab,
   onSelectTab,
   onLogout,
@@ -18,6 +19,7 @@ export default function DashboardLayout({
         onLogout={onLogout}
       />
       <Sidebar
+        user={user}
         activeTab={activeTab}
         onSelectTab={onSelectTab}
         isOpen={isSidebarOpen}

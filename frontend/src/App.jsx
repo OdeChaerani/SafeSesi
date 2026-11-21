@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import DashboardLayout from './components/layout/DashboardLayout'
 import DashboardPage from './pages/DashboardPage'
@@ -6,48 +6,94 @@ import CatalogPage from './pages/CatalogPage'
 import BriefingPage from './pages/BriefingPage'
 import SimulationPage from './pages/SimulationPage'
 import LoginPage from './pages/LoginPage'
+import ActivationPage from './pages/ActivationPage'
+import LecturerPage from './pages/LecturerPage'
+import AdminPage from './pages/AdminPage'
 import EvaluationPage from './pages/EvaluationPage'
+import { getSavedUser, logout, restoreSession, saveUser } from './services/auth'
+import { getAccessToken, setOnAuthExpired } from './services/api'
 
-const AUTH_STORAGE_KEY = 'safesesi_auth_user'
+function getRoleHome(role) {
+  switch (role) {
+    case 'lecturer':
+      return '/dosen'
+    case 'admin':
+      return '/admin'
+    case 'student':
+    default:
+      return '/beranda'
+  }
+}
 
-function ProtectedRoute({ isAuthenticated, children }) {
-  if (!isAuthenticated) {
+function ProtectedRoute({ user, allowedRoles, children }) {
+  if (!user) {
     return <Navigate to="/login" replace />
+  }
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to={getRoleHome(user.role)} replace />
   }
   return children
 }
 
 function App() {
   const navigate = useNavigate()
+  // Muat data user tersimpan agar UI langsung tahu peran pengguna tanpa flicker
+  const [user, setUser] = useState(() => getSavedUser())
+  const [isInitializing, setIsInitializing] = useState(!getAccessToken())
 
-  // Muat status autentikasi dari localStorage agar persisten saat F5 / reload
-  const [user, setUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem(AUTH_STORAGE_KEY)
-      return saved ? JSON.parse(saved) : null
-    } catch {
-      return null
+  useEffect(() => {
+    // Daftarkan listener saat refresh token kedaluwarsa di tengah jalan
+    setOnAuthExpired(() => {
+      saveUser(null)
+      setUser(null)
+      navigate('/login', { replace: true })
+    })
+
+    // Hanya pulihkan sesi jika access token belum ada di memori (mis. saat pertama buka / reload F5)
+    if (!getAccessToken()) {
+      restoreSession()
+        .then((userData) => {
+          if (userData) {
+            setUser(userData)
+          } else {
+            // Sesi kedaluwarsa atau tidak valid di backend
+            saveUser(null)
+            setUser(null)
+          }
+        })
+        .finally(() => {
+          setIsInitializing(false)
+        })
     }
-  })
+  }, [navigate])
 
-  const isAuthenticated = Boolean(user)
-
-  const handleLogin = (credentials) => {
-    const userObj = {
-      username: credentials?.username || 'Rani Aulia',
-      role: 'Mahasiswa Angkatan 2023',
-      token: 'dev-token-student-1',
-    }
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(userObj))
-    setUser(userObj)
-    navigate('/beranda', { replace: true })
+  const handleLoginSuccess = (userData) => {
+    saveUser(userData)
+    setUser(userData)
+    navigate(getRoleHome(userData?.role), { replace: true })
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem(AUTH_STORAGE_KEY)
+  const handleLogout = async () => {
+    await logout()
+    saveUser(null)
     setUser(null)
     navigate('/login', { replace: true })
   }
+
+  if (isInitializing) {
+    return (
+      <div className="w-full min-h-screen flex flex-col items-center justify-center bg-[#352f55] text-white">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-3 border-amber-400 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm font-medium tracking-wide text-slate-200">
+            Memuat SafeSesi...
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  const isAuthenticated = Boolean(user)
 
   return (
     <Routes>
@@ -56,20 +102,32 @@ function App() {
         path="/login"
         element={
           isAuthenticated ? (
-            <Navigate to="/beranda" replace />
+            <Navigate to={getRoleHome(user.role)} replace />
           ) : (
-            <LoginPage onLogin={handleLogin} />
+            <LoginPage onLoginSuccess={handleLoginSuccess} />
           )
         }
       />
 
-      {/* 2. Protected Routes di dalam DashboardLayout */}
+      {/* 2. Public Route: Aktivasi Akun (membaca token dari hash URL) */}
+      <Route
+        path="/aktivasi"
+        element={
+          isAuthenticated ? (
+            <Navigate to={getRoleHome(user.role)} replace />
+          ) : (
+            <ActivationPage />
+          )
+        }
+      />
+
+      {/* 3. Protected Routes untuk Mahasiswa */}
       <Route
         path="/"
         element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <DashboardLayout onLogout={handleLogout}>
-              <DashboardPage />
+          <ProtectedRoute user={user} allowedRoles={['student']}>
+            <DashboardLayout user={user} onLogout={handleLogout}>
+              <DashboardPage user={user} />
             </DashboardLayout>
           </ProtectedRoute>
         }
@@ -78,9 +136,9 @@ function App() {
       <Route
         path="/beranda"
         element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <DashboardLayout onLogout={handleLogout}>
-              <DashboardPage />
+          <ProtectedRoute user={user} allowedRoles={['student']}>
+            <DashboardLayout user={user} onLogout={handleLogout}>
+              <DashboardPage user={user} />
             </DashboardLayout>
           </ProtectedRoute>
         }
@@ -89,20 +147,19 @@ function App() {
       <Route
         path="/latihan-mandiri"
         element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <DashboardLayout onLogout={handleLogout}>
+          <ProtectedRoute user={user} allowedRoles={['student']}>
+            <DashboardLayout user={user} onLogout={handleLogout}>
               <CatalogPage />
             </DashboardLayout>
           </ProtectedRoute>
         }
       />
 
-      {/* Subpage Briefing: /latihan-mandiri/:scenarioId/briefing */}
       <Route
         path="/latihan-mandiri/:scenarioId/briefing"
         element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <DashboardLayout onLogout={handleLogout}>
+          <ProtectedRoute user={user} allowedRoles={['student']}>
+            <DashboardLayout user={user} onLogout={handleLogout}>
               <BriefingPage />
             </DashboardLayout>
           </ProtectedRoute>
@@ -112,8 +169,8 @@ function App() {
       <Route
         path="/kelas-saya"
         element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <DashboardLayout onLogout={handleLogout}>
+          <ProtectedRoute user={user} allowedRoles={['student']}>
+            <DashboardLayout user={user} onLogout={handleLogout}>
               <div className="bg-white p-6 md:p-8 rounded-2xl shadow-xs border border-slate-100 flex flex-col items-center justify-center text-center gap-3 py-14">
                 <div className="w-12 h-12 rounded-xl bg-[#ede9fe] text-[#352f55] flex items-center justify-center">
                   <span className="material-symbols-outlined text-[28px]">
@@ -135,8 +192,8 @@ function App() {
       <Route
         path="/riwayat"
         element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <DashboardLayout onLogout={handleLogout}>
+          <ProtectedRoute user={user} allowedRoles={['student']}>
+            <DashboardLayout user={user} onLogout={handleLogout}>
               <div className="bg-white p-6 md:p-8 rounded-2xl shadow-xs border border-slate-100 flex flex-col items-center justify-center text-center gap-3 py-14">
                 <div className="w-12 h-12 rounded-xl bg-[#ede9fe] text-[#352f55] flex items-center justify-center">
                   <span className="material-symbols-outlined text-[28px]">
@@ -155,11 +212,11 @@ function App() {
         }
       />
 
-      {/* 3. Immersive Simulation Room (Layar Penuh tanpa Sidebar) */}
+      {/* Sesi Simulasi Real-Time (Layar Penuh) */}
       <Route
         path="/simulasi/:sessionId"
         element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
+          <ProtectedRoute user={user} allowedRoles={['student']}>
             <SimulationPage />
           </ProtectedRoute>
         }
@@ -168,19 +225,39 @@ function App() {
       <Route
         path="/evaluasi/:sessionId"
         element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-            <DashboardLayout onLogout={handleLogout}>
+          <ProtectedRoute user={user} allowedRoles={['student']}>
+            <DashboardLayout user={user} onLogout={handleLogout}>
               <EvaluationPage />
             </DashboardLayout>
           </ProtectedRoute>
         }
       />
 
-      {/* 4. Catch-all: Redirect ke beranda atau login */}
+      {/* 4. Protected Routes untuk Dosen */}
+      <Route
+        path="/dosen"
+        element={
+          <ProtectedRoute user={user} allowedRoles={['lecturer']}>
+            <LecturerPage user={user} onLogout={handleLogout} />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 5. Protected Routes untuk Administrator */}
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute user={user} allowedRoles={['admin']}>
+            <AdminPage user={user} onLogout={handleLogout} />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 6. Catch-all: Redirect ke home sesuai role atau ke login */}
       <Route
         path="*"
         element={
-          <Navigate to={isAuthenticated ? '/beranda' : '/login'} replace />
+          <Navigate to={user ? getRoleHome(user.role) : '/login'} replace />
         }
       />
     </Routes>

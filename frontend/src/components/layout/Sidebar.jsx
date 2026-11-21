@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 
-const NAV_ITEMS = [
+const STUDENT_NAV_ITEMS = [
   { id: 'beranda', label: 'Beranda', icon: 'home', path: '/beranda' },
   {
     id: 'latihan-mandiri',
@@ -12,12 +12,37 @@ const NAV_ITEMS = [
   { id: 'riwayat', label: 'Riwayat', icon: 'history', path: '/riwayat' },
 ]
 
+const LECTURER_NAV_ITEMS = [
+  { id: 'dosen', label: 'Portal Dosen', icon: 'school', path: '/dosen' },
+]
+
+const ADMIN_NAV_ITEMS = [
+  { id: 'admin', label: 'Portal Admin', icon: 'admin_panel_settings', path: '/admin' },
+]
+
 export default function Sidebar({
   isOpen = true,
+  user,
   onLogout,
 }) {
   const location = useLocation()
   const navigate = useNavigate()
+
+  let navItems = STUDENT_NAV_ITEMS
+  if (user?.role === 'lecturer') {
+    navItems = LECTURER_NAV_ITEMS
+  } else if (user?.role === 'admin') {
+    navItems = ADMIN_NAV_ITEMS
+  }
+
+  const roleLabel =
+    user?.role === 'student'
+      ? 'Mahasiswa'
+      : user?.role === 'lecturer'
+      ? 'Dosen Praktikum'
+      : user?.role === 'admin'
+      ? 'Administrator'
+      : user?.role || 'Pengguna'
 
   return (
     <aside
@@ -28,7 +53,7 @@ export default function Sidebar({
       {/* Navigation Links */}
       <div className="flex flex-col gap-2">
         <nav className="flex flex-col gap-1">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const isActive =
               item.path === '/beranda'
                 ? location.pathname === '/' || location.pathname === '/beranda'
@@ -70,10 +95,10 @@ export default function Sidebar({
           </div>
           <div className="flex flex-col min-w-0">
             <span className="text-xs font-semibold text-slate-800 truncate">
-              Rani Aulia
+              {user?.name || 'Pengguna SafeSesi'}
             </span>
             <span className="text-[10px] text-slate-500 truncate">
-              Mahasiswa Angkatan 2023
+              {roleLabel}
             </span>
           </div>
         </div>
