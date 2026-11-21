@@ -17,6 +17,7 @@ from repositories.turns import get_next_turn_no, get_session_turns, save_turn
 from schemas.client_state import ClientState, StateDetail
 from schemas.session import TurnResponse
 from services.llm.gemini_client import track_usage
+from services.simulation.expression import expression_for_emotion
 from services.simulation.intent import classify_greeting, generate_greeting_response
 from services.simulation.notes_updater import update_topic_notes_llm
 from services.simulation.responder import generate_client_response_llm
@@ -52,6 +53,7 @@ async def _save_turn_pair(
     state: dict[str, Any],
     start_ms: int,
     end_ms: int,
+    word_timestamps: list[dict[str, Any]] | None = None,
 ) -> tuple[int, int, int]:
     """Persistensi atomik: turn konselor + turn klien + client_state_log.
 
@@ -67,6 +69,7 @@ async def _save_turn_pair(
             content=counselor_utterance,
             start_ms=start_ms,
             end_ms=end_ms,
+            word_timestamps=word_timestamps,
         )
         cl_turn_no = c_turn_no + 1
         cl_turn_id = await save_turn(
@@ -216,6 +219,7 @@ async def process_turn(
     end_ms: int = 0,
     turn_lock: DbTurnLock | NullTurnLock | None = None,
     lock_wait_ms: float | None = None,
+    word_timestamps: list[dict[str, Any]] | None = None,
 ) -> TurnResponse:
     """Memproses satu giliran. Mengambil alih turn_lock: lock selalu dilepas di sini,
     atau diserahkan ke tugas Peran C background yang melepasnya setelah selesai.
@@ -226,7 +230,7 @@ async def process_turn(
     succeeded = False
     try:
         response, handed_off = await _process_turn_locked(
-            conn, session, counselor_utterance, start_ms, end_ms, lock, lock_wait_ms
+            conn, session, counselor_utterance, start_ms, end_ms, lock, lock_wait_ms, word_timestamps
         )
         succeeded = True
         return response
@@ -243,6 +247,7 @@ async def _process_turn_locked(
     end_ms: int,
     turn_lock: DbTurnLock | NullTurnLock,
     lock_wait_ms: float | None = None,
+    word_timestamps: list[dict[str, Any]] | None = None,
 ) -> tuple[TurnResponse, bool]:
     """Mengorkestrasi satu siklus giliran dialog konseling:
 
@@ -300,7 +305,7 @@ async def _process_turn_locked(
         with timings.stage("save"):
             # Salin state sebelumnya untuk giliran klien sapaan
             cl_turn_no, _, _ = await _save_turn_pair(
-                conn, session_id, counselor_utterance, client_reply, latest_state, start_ms, end_ms
+                conn, session_id, counselor_utterance, client_reply, latest_state, start_ms, end_ms, word_timestamps
             )
         timings.emit(session_id, cl_turn_no, path="greeting_shortcut")
 
@@ -309,7 +314,12 @@ async def _process_turn_locked(
             if settings.DEBUG_INCLUDE_INTERNAL
             else None
         )
-        response = TurnResponse(turn_no=cl_turn_no, content=client_reply, internal_state=internal_st)
+        response = TurnResponse(
+            turn_no=cl_turn_no,
+            content=client_reply,
+            expression=expression_for_emotion(latest_state.get("emotion_type"), bool(latest_state.get("discord_present"))),
+            internal_state=internal_st,
+        )
         return response, False
 
     # 5. Peran A. combined: State Updater penuh. split: State Decision Agent saja (keputusan
@@ -371,10 +381,16 @@ async def _process_turn_locked(
             new_state.model_dump(),
             start_ms,
             end_ms,
+            word_timestamps,
         )
 
     internal_st = new_state if settings.DEBUG_INCLUDE_INTERNAL else None
-    response = TurnResponse(turn_no=cl_turn_no, content=client_reply, internal_state=internal_st)
+    response = TurnResponse(
+        turn_no=cl_turn_no,
+        content=client_reply,
+        expression=expression_for_emotion(new_state.emotion_type, new_state.discord_present),
+        internal_state=internal_st,
+    )
 
     # 8. Peran C (Notes Updater), dan State Detail Agent pada mode split. Background hanya jika
     # ada koneksi lock khusus: tugas background tidak boleh memakai koneksi request yang

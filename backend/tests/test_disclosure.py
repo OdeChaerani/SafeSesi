@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, patch
 from api.sessions import create_new_session, send_counselor_turn
 from repositories.scenarios import get_catalog_scenarios
 from schemas.client_state import ClientState
-from schemas.scenario import CatalogScenarioResponse
+from schemas.scenario import CatalogScenarioResponse, PublicScenarioInfo
 from schemas.session import CreateSessionRequest, CreateTurnRequest, SessionResponse
 from services.simulation.disclosure import (
     enforce_disclosure_floor,
@@ -317,6 +317,7 @@ class TestFirstTurnMediumScenario(BaseTestCase):
         self.assertNotIn("RINA-H3", prompt_b)
         self.assertEqual(res.content, "Iya, saya ingin lebih aktif.")
         self.assertIsNone(res.internal_state)
+        self.assertEqual(res.expression, "anxious")  # dari emotion_type "Cemas"; Client State sendiri tetap tidak dikirim
 
 
 class TestPublicResponses(BaseTestCase):
@@ -341,6 +342,7 @@ class TestPublicResponses(BaseTestCase):
                 "client_name": "Rina Kusumawati",
                 "client_age": 36,
                 "client_gender": "Perempuan",
+                "client_avatar_file": "woman1.glb",
                 "client_role": "Karyawan dan ibu",
                 "initial_summary": rina_snapshot()["case"]["initial_summary"],
                 "total_attempts": 0,
@@ -353,6 +355,7 @@ class TestPublicResponses(BaseTestCase):
         sql = conn.fetch.call_args.args[0]
         self.assertIn("c.initial_summary", sql)
         self.assertNotIn("c.main_problem", sql)
+        self.assertIn("p.avatar_file", sql)
 
         body = CatalogScenarioResponse.model_validate(raw).model_dump(mode="json")
         self.assertEqual(len(body["items"]), 1)  # pencarian bekerja via initial_summary
@@ -360,7 +363,15 @@ class TestPublicResponses(BaseTestCase):
             body["items"][0]["initial_summary"],
             "Bu Rina ingin lebih aktif bergerak di sela pekerjaan dan keluarga.",
         )
+        self.assertEqual(body["items"][0]["client_avatar_file"], "woman1.glb")
         self._assert_no_internal(body)
+
+    def test_public_summary_carries_avatar_file(self):
+        snapshot = rina_snapshot()
+        snapshot["persona"]["avatar_file"] = "woman1.glb"
+        info = PublicScenarioInfo.from_snapshot(snapshot).model_dump()
+        self.assertEqual(info["client_avatar_file"], "woman1.glb")
+        self._assert_no_internal(info)
 
     @patch("api.sessions.get_scenario_by_id")
     @patch("api.sessions.build_scenario_snapshot")

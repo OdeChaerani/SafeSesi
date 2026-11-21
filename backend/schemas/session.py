@@ -7,6 +7,9 @@ from pydantic import BaseModel, Field, field_validator
 from schemas.client_state import ClientState
 from schemas.scenario import PublicScenarioInfo
 
+# Ekspresi wajah avatar klien (lihat services/simulation/expression.py).
+Expression = Literal["neutral", "happy", "sad", "anxious", "tense"]
+
 
 class CreateSessionRequest(BaseModel):
     """Permintaan pembuatan sesi simulasi konseling baru."""
@@ -34,12 +37,21 @@ class SessionResponse(BaseModel):
     duration_seconds: int | None = None
 
 
+class WordTiming(BaseModel):
+    """Penanda waktu satu kata dari STT, dalam milidetik sejak awal sesi."""
+
+    word: str
+    start_ms: int = Field(..., ge=0)
+    end_ms: int = Field(..., ge=0)
+
+
 class CreateTurnRequest(BaseModel):
     """Permintaan pengiriman giliran ucapan konselor."""
 
     content: str = Field(..., min_length=1, description="Teks ucapan konselor")
     start_ms: int = Field(default=0, ge=0, description="Waktu awal bicara dalam milidetik")
     end_ms: int = Field(default=0, ge=0, description="Waktu akhir bicara dalam milidetik")
+    words: list[WordTiming] | None = Field(default=None, description="Penanda waktu per kata (input suara)")
 
     @field_validator("content")
     @classmethod
@@ -55,6 +67,10 @@ class TurnResponse(BaseModel):
 
     turn_no: int = Field(..., description="Nomor urut respon klien")
     content: str = Field(..., description="Teks respons klien virtual dalam Bahasa Indonesia")
+    expression: Expression = Field(
+        default="neutral",
+        description="Ekspresi wajah avatar, label kasar dari emosi Client State (bukan state itu sendiri)",
+    )
     internal_state: ClientState | None = Field(
         default=None,
         description="State internal klien (HANYA dikembalikan jika DEBUG_INCLUDE_INTERNAL=true)",

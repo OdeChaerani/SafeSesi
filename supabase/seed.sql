@@ -46,7 +46,7 @@ BEGIN
 
         INSERT INTO public.scenario_personas (
             scenario_id, name, age, gender, education, occupation, marital_status,
-            family_background, personality, communication_style, additional_background
+            family_background, personality, communication_style, additional_background, avatar_file
         ) VALUES (
             v_nadia_id,
             'Nadia Maharani',
@@ -58,7 +58,8 @@ BEGIN
             'Tinggal bersama orang tua dan adik. Orang tua menghargai tanggung jawab akademik; kondisi ekonomi keluarga tidak menjadi fokus masalah.',
             'Menjaga komitmen, sulit menolak permintaan, dan khawatir mengecewakan orang lain.',
             'Pada awal pertemuan menjawab singkat dan berhati-hati; lebih elaboratif ketika merasa dipahami.',
-            'Pertemanan dan pengalaman organisasi penting baginya. Rincian konflik yang langsung terkait masalah dicatat dalam Kasus.'
+            'Pertemanan dan pengalaman organisasi penting baginya. Rincian konflik yang langsung terkait masalah dicatat dalam Kasus.',
+            'girl1.glb'
         );
 
         INSERT INTO public.scenario_cases (
@@ -114,7 +115,7 @@ BEGIN
 
         INSERT INTO public.scenario_personas (
             scenario_id, name, age, gender, education, occupation, marital_status,
-            family_background, personality, communication_style, additional_background
+            family_background, personality, communication_style, additional_background, avatar_file
         ) VALUES (
             v_hendra_id,
             'Hendra Saputra (Pak Hendra)',
@@ -126,7 +127,8 @@ BEGIN
             'Tinggal bersama istri dan seorang anak laki-laki berusia 8 tahun. Istrinya beberapa kali meminta ia berhenti merokok dan sering mengingatkannya, termasuk di depan orang lain.',
             'Mandiri, terbiasa memutuskan sendiri, dan mudah bersikap defensif ketika merasa diatur atau digurui.',
             'Ringkas dan lugas; kadang bercanda untuk menghindari topik berat; menjawab lebih panjang ketika lawan bicara tidak terdengar menggurui.',
-            'Merokok sejak masa SMK. Rekan kerja di bengkel juga merokok, dan waktu istirahat selama bekerja singkat.'
+            'Merokok sejak masa SMK. Rekan kerja di bengkel juga merokok, dan waktu istirahat selama bekerja singkat.',
+            'man1.glb'
         );
 
         INSERT INTO public.scenario_cases (
@@ -181,7 +183,7 @@ BEGIN
 
         INSERT INTO public.scenario_personas (
             scenario_id, name, age, gender, education, occupation, marital_status,
-            family_background, personality, communication_style, additional_background
+            family_background, personality, communication_style, additional_background, avatar_file
         ) VALUES (
             v_rina_id,
             'Rina Kusumawati',
@@ -193,7 +195,8 @@ BEGIN
             'Tinggal bersama suami dan seorang anak. Pengasuhan serta jadwal kerja pasangan berpengaruh pada waktu luang.',
             'Bertanggung jawab terhadap pekerjaan dan keluarga, tetapi cenderung menyalahkan diri ketika kebiasaan baru tidak bertahan.',
             'Cukup terbuka mengenai kegiatan sehari-hari, namun ragu ketika membicarakan kegagalan atau penampilan tubuh.',
-            'Lebih menikmati aktivitas santai yang dapat dilakukan bersama keluarga daripada aktivitas yang terasa seperti kewajiban.'
+            'Lebih menikmati aktivitas santai yang dapat dilakukan bersama keluarga daripada aktivitas yang terasa seperti kewajiban.',
+            'woman1.glb'
         );
 
         INSERT INTO public.scenario_cases (
@@ -248,7 +251,7 @@ BEGIN
 
         INSERT INTO public.scenario_personas (
             scenario_id, name, age, gender, education, occupation, marital_status,
-            family_background, personality, communication_style, additional_background
+            family_background, personality, communication_style, additional_background, avatar_file
         ) VALUES (
             v_sari_id,
             'Sari Wulandari',
@@ -260,7 +263,8 @@ BEGIN
             'Tinggal bersama ibu. Kakak laki-lakinya sudah lulus kuliah dan bekerja di kantor. Kondisi ekonomi keluarga cukup untuk kebutuhan sehari-hari, tetapi tidak berlebih.',
             'Tekun bekerja, jarang menyampaikan keinginannya sendiri, dan cenderung meremehkan kemampuan dirinya.',
             'Pada awal pertemuan menjawab singkat dan datar; lebih banyak bercerita ketika merasa didengarkan.',
-            'Beberapa teman seangkatannya sudah lulus. Rincian yang langsung terkait masalah dicatat dalam Kasus.'
+            'Beberapa teman seangkatannya sudah lulus. Rincian yang langsung terkait masalah dicatat dalam Kasus.',
+            'girl3.glb'
         );
 
         INSERT INTO public.scenario_cases (

@@ -2,12 +2,37 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any
 from core.config import get_settings
 from prompts.prompt_b_responder import PROMPT_B_VERSION, SYSTEM_INSTRUCTION_B
 from schemas.client_state import ClientState
 from services.llm.gemini_client import LLMConfigRejected, get_gemini_client
 from services.simulation.disclosure import filter_hidden_facts
+
+MAX_REPLY_WORDS = 40
+MAX_REPLY_SENTENCES = 3
+# Batas kalimat: tanda akhir lalu spasi lalu huruf besar/kutip. "saya... ya" (lanjut huruf kecil) bukan batas.
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[A-Z\"“'(])")
+
+
+def limit_reply(text: str, max_words: int = MAX_REPLY_WORDS, max_sentences: int = MAX_REPLY_SENTENCES) -> str:
+    """Penjamin panjang ucapan klien bila Peran B melewati batas di prompt: potong di akhir kalimat.
+
+    Kalimat pertama yang sendirian sudah lebih dari batas dipotong per kata dan diakhiri "…".
+    """
+    text = text.strip()
+    kept: list[str] = []
+    words = 0
+    for sentence in _SENTENCE_END.split(text):
+        n = len(sentence.split())
+        if len(kept) == max_sentences or (kept and words + n > max_words):
+            break
+        if not kept and n > max_words:
+            return " ".join(sentence.split()[:max_words]).rstrip(",;:") + "…"
+        kept.append(sentence)
+        words += n
+    return " ".join(kept)
 
 logger = logging.getLogger("safesesi.simulation.responder")
 
@@ -95,7 +120,7 @@ Anda sedang berada dalam sesi konseling tatap maya (online video call) resmi yan
    - DILARANG menebak konselor adalah pria ('Mas'/'Pak') secara sepihak.
 2. Jika konselor hanya menyapa ('Halo', 'Hai', 'Selamat pagi', dll.), balaslah sapaan tersebut secara proporsional dan santun. JANGAN bertanya curiga seperti 'Ada apa ya?' karena Anda tahu ini adalah sesi konseling Anda.
 3. Jika konselor bertanya kabar ('Gimana kabarnya?'), jawab kondisi kabar Anda secara ringkas dan wajar. JANGAN melompat langsung membahas topik masalah (seperti rokok atau masalah pribadi) sebelum konselor mulai mengeksplorasinya.
-4. Bicaralah wajar dan ringkas (1–3 kalimat) dengan gaya lisan santai sesuai karakter persona Anda.
+4. Bicaralah wajar dan ringkas (maksimal 2–3 kalimat, tidak lebih dari 40 kata) dengan gaya lisan santai sesuai karakter persona Anda.
 
 ### Informasi Tersembunyi (Boleh Diungkap Bertahap HANYA JIKA Konteks Sangat Mendukung):
 {json.dumps(filtered_hidden_facts, indent=2, ensure_ascii=False, default=str) if filtered_hidden_facts else "[] (Belum ada informasi tersembunyi yang boleh Anda ungkapkan saat ini)"}
@@ -121,7 +146,7 @@ Tanggapi ucapan konselor terkini sesuai Petunjuk Menanggapi di atas.
     last_exc: Exception | None = None
     for attempt in range(2):
         try:
-            return await llm.generate_text(
+            reply = await llm.generate_text(
                 model=settings.GEMINI_MODEL_RESPONDER,
                 system_instruction=SYSTEM_INSTRUCTION_B,
                 user_prompt=user_prompt,
@@ -129,6 +154,7 @@ Tanggapi ucapan konselor terkini sesuai Petunjuk Menanggapi di atas.
                 thinking_budget=settings.GEMINI_THINKING_BUDGET_RESPONDER,
                 role="B",
             )
+            return limit_reply(reply)
         except LLMConfigRejected:
             raise  # salah konfigurasi: retry tidak menolong
         except Exception as exc:

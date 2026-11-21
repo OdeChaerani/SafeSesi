@@ -74,6 +74,7 @@ async def get_catalog_scenarios(
                 p.name AS client_name,
                 p.age AS client_age,
                 p.gender AS client_gender,
+                p.avatar_file AS client_avatar_file,
                 COALESCE(NULLIF(p.occupation, ''), NULLIF(p.education, ''), 'Klien Virtual') AS client_role,
                 c.initial_summary,
                 COUNT(se.id) AS total_attempts,
@@ -85,7 +86,7 @@ async def get_catalog_scenarios(
             JOIN scenario_cases c ON c.scenario_id = sc.id
             LEFT JOIN sessions se ON se.scenario_id = sc.id AND se.student_id = $1
             WHERE sc.visibility = 'catalog' AND sc.deleted_at IS NULL
-            GROUP BY sc.id, p.name, p.age, p.gender, p.occupation, p.education, c.initial_summary
+            GROUP BY sc.id, p.name, p.age, p.gender, p.avatar_file, p.occupation, p.education, c.initial_summary
             ORDER BY sc.id ASC
         )
         SELECT * FROM scenario_stats

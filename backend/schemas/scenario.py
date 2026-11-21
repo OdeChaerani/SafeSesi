@@ -23,6 +23,7 @@ class Persona(BaseModel):
     personality: str = Field(..., description="Karakteristik kepribadian konkret (tanpa Big Five)")
     communication_style: str = Field(..., description="Gaya komunikasi verbal klien")
     additional_background: str | None = Field(default=None, description="Latar tambahan relevan")
+    avatar_file: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]+\.glb$", description="File avatar 3D di frontend/public/models/")
 
 
 class HiddenFact(BaseModel):
@@ -99,6 +100,7 @@ class PublicScenarioInfo(BaseModel):
     client_name: str
     client_age: int
     client_gender: str
+    client_avatar_file: str | None = None
     client_role: str
     initial_summary: str | None = None
 
@@ -116,6 +118,7 @@ class PublicScenarioInfo(BaseModel):
             client_name=persona.get("name", ""),
             client_age=persona.get("age", 0),
             client_gender=persona.get("gender", ""),
+            client_avatar_file=persona.get("avatar_file"),
             client_role=persona.get("occupation")
             or persona.get("education")
             or "Klien Virtual",
