@@ -18,6 +18,7 @@ DECLARE
     v_sari_id bigint;
     v_student_id bigint;
     v_admin_id bigint;
+    v_external_id bigint;
     v_class_id bigint;
 BEGIN
     -- =================================================================
@@ -355,6 +356,29 @@ BEGIN
             activated_at = COALESCE(activated_at, now())
         WHERE id = v_admin_id;
     END IF;
+
+    -- Mahasiswa dari kampus lain: tanpa NPM, asal_institusi wajib terisi.
+    SELECT id INTO v_external_id FROM public.users WHERE lower(email) = 'mahasiswa.luar@safesesi.local' AND deleted_at IS NULL;
+    IF v_external_id IS NULL THEN
+        INSERT INTO public.users (name, email, role, password_hash, activated_at)
+        VALUES (
+            'Mahasiswa Kampus Lain (DEV)',
+            'mahasiswa.luar@safesesi.local',
+            'student'::public.user_role,
+            '$argon2id$v=19$m=65536,t=3,p=4$NizDYlQ2wPLLLwQqQzXorw$MH6Zlm0XEQkgLV/rPrHJV7ZtedftBXm+jVqopBIP6eI',
+            now()
+        )
+        RETURNING id INTO v_external_id;
+    END IF;
+
+    -- Profil uji: nilai fiktif yang jelas bukan NPM/NIP asli.
+    INSERT INTO public.students (user_id, npm, asal_institusi)
+    VALUES (v_student_id, 'DEV-NPM-0001', NULL), (v_external_id, NULL, 'Kampus Fiktif (DEV)')
+    ON CONFLICT (user_id) DO NOTHING;
+
+    INSERT INTO public.lecturers (user_id, nip)
+    VALUES (v_owner_id, 'DEV-NIP-0001')
+    ON CONFLICT (user_id) DO NOTHING;
 
     SELECT id INTO v_class_id FROM public.classes WHERE name = 'Kelas Uji Pengembangan (DEV)' AND academic_year = '2026/2027' AND deleted_at IS NULL;
     IF v_class_id IS NULL THEN
