@@ -18,10 +18,17 @@ export function setOnAuthExpired(callback) {
 }
 
 export class ApiError extends Error {
-  constructor(status, message) {
+  constructor(status, message, retryAfter = null, field = null) {
     super(message)
+    this.field = field // isian formulir yang bermasalah, bila backend menyebutnya
     this.status = status // 0 = server tidak terjangkau
+    this.retryAfter = retryAfter // detik (header Retry-After pada 429), atau null
   }
+}
+
+function parseRetryAfter(res) {
+  const seconds = Number(res.headers.get('Retry-After'))
+  return Number.isFinite(seconds) && seconds > 0 ? seconds : null
 }
 
 /**
@@ -38,15 +45,22 @@ export async function doRefreshToken() {
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
         })
-        if (!res.ok) {
+        if (res.status === 400 || res.status === 401) {
+          // Refresh token ditolak: sesi benar-benar berakhir.
           setAccessToken(null)
           if (onAuthExpiredCallback) onAuthExpiredCallback()
           return null
         }
+        if (!res.ok) {
+          // Mis. 429 (dibatasi) atau 5xx: sesi belum tentu berakhir, jadi token dipertahankan.
+          const body = await res.json().catch(() => null)
+          throw new ApiError(res.status, body?.detail || `Permintaan gagal (${res.status}).`, parseRetryAfter(res))
+        }
         const data = await res.json()
         setAccessToken(data.access_token)
         return data
-      } catch {
+      } catch (err) {
+        if (err instanceof ApiError) throw err // 429/5xx dari atas: sesi tetap
         setAccessToken(null)
         if (onAuthExpiredCallback) onAuthExpiredCallback()
         return null
@@ -60,7 +74,8 @@ export async function doRefreshToken() {
 
 /** Panggil /api/v1{path}. Mengembalikan body JSON; melempar ApiError berisi `detail` dari backend. */
 export async function request(path, options = {}) {
-  const isAuthEndpoint = path.startsWith('/auth/')
+  // Endpoint auth yang butuh login: 401 (access token habis) tetap ditangani refresh seperti endpoint biasa.
+  const isAuthEndpoint = path.startsWith('/auth/') && !['/auth/me', '/auth/change-password'].includes(path)
   const headers = { ...options.headers }
 
   if (accessToken && !headers['Authorization']) {
@@ -113,7 +128,11 @@ export async function request(path, options = {}) {
 
   const body = await res.json().catch(() => null)
   if (!res.ok) {
-    throw new ApiError(res.status, body?.detail || `Permintaan gagal (${res.status}).`)
+    // detail berupa daftar = kesalahan validasi skema (FastAPI); ambil pesan dan nama isian pertama.
+    const invalid = Array.isArray(body?.detail) ? body.detail[0] : null
+    const message = invalid ? invalid.msg?.replace(/^Value error, /, '') : body?.detail
+    const field = invalid ? invalid.loc?.at(-1) : body?.field
+    throw new ApiError(res.status, message || `Permintaan gagal (${res.status}).`, parseRetryAfter(res), field ?? null)
   }
   return body
 }

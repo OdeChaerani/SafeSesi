@@ -1,4 +1,7 @@
+import UserMenu from './UserMenu'
+
 export default function Navbar({
+  user,
   isSidebarOpen = true,
   onToggleSidebar,
   onLogout,
@@ -21,15 +24,10 @@ export default function Navbar({
           </button>
         )}
 
-        <div className="flex flex-col">
-          <span className="text-lg leading-tight tracking-tight flex items-center font-bold">
-            <span className="text-[#f5b51b]">Safe</span>
-            <span className="text-[#352f55]">Sesi</span>
-          </span>
-          <span className="text-[11px] text-[#64748b]">
-            Psikologi · Universitas Padjadjaran
-          </span>
-        </div>
+        <span className="text-lg leading-tight tracking-tight flex items-center font-bold">
+          <span className="text-[#f5b51b]">Safe</span>
+          <span className="text-[#352f55]">Sesi</span>
+        </span>
 
         <div className="h-5 w-px bg-slate-200 hidden md:block" />
 
@@ -40,30 +38,7 @@ export default function Navbar({
 
       {/* Action / Profile Badges */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-[#1e1a34] text-xs font-semibold border border-slate-200/80">
-          <span className="material-symbols-outlined text-[14px] text-[#64748b]">
-            verified
-          </span>
-          <span>Akademik UNPAD</span>
-        </div>
-
-        {onLogout ? (
-          <button
-            type="button"
-            onClick={onLogout}
-            title="Keluar Akun"
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-700 text-xs font-semibold border border-slate-200/80 transition cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-[15px]">logout</span>
-            <span className="hidden sm:inline">Keluar</span>
-          </button>
-        ) : (
-          <div className="w-7 h-7 rounded-full bg-[#352f55] flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity">
-            <span className="material-symbols-outlined text-white text-[16px]">
-              person
-            </span>
-          </div>
-        )}
+        {user && <UserMenu user={user} onLogout={onLogout} />}
       </div>
     </header>
   )

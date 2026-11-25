@@ -8,8 +8,9 @@ import SimulationPage from './pages/SimulationPage'
 import LoginPage from './pages/LoginPage'
 import ActivationPage from './pages/ActivationPage'
 import LecturerPage from './pages/LecturerPage'
-import AdminPage from './pages/AdminPage'
+import AdminUsersPage from './pages/AdminUsersPage'
 import EvaluationPage from './pages/EvaluationPage'
+import ProfilePage from './pages/ProfilePage'
 import { getSavedUser, logout, restoreSession, saveUser } from './services/auth'
 import { getAccessToken, setOnAuthExpired } from './services/api'
 
@@ -18,7 +19,7 @@ function getRoleHome(role) {
     case 'lecturer':
       return '/dosen'
     case 'admin':
-      return '/admin'
+      return '/admin/pengguna'
     case 'student':
     default:
       return '/beranda'
@@ -60,6 +61,9 @@ function App() {
             saveUser(null)
             setUser(null)
           }
+        })
+        .catch(() => {
+          // Refresh gagal bukan karena token ditolak (mis. 429): biarkan user tersimpan, coba lagi saat request berikutnya.
         })
         .finally(() => {
           setIsInitializing(false)
@@ -117,6 +121,16 @@ function App() {
             <Navigate to={getRoleHome(user.role)} replace />
           ) : (
             <ActivationPage />
+          )
+        }
+      />
+      <Route
+        path="/reset-password"
+        element={
+          isAuthenticated ? (
+            <Navigate to={getRoleHome(user.role)} replace />
+          ) : (
+            <ActivationPage mode="reset" />
           )
         }
       />
@@ -244,11 +258,24 @@ function App() {
       />
 
       {/* 5. Protected Routes untuk Administrator */}
+      <Route path="/admin" element={<Navigate to="/admin/pengguna" replace />} />
       <Route
-        path="/admin"
+        path="/admin/pengguna"
         element={
           <ProtectedRoute user={user} allowedRoles={['admin']}>
-            <AdminPage user={user} onLogout={handleLogout} />
+            <AdminUsersPage user={user} onLogout={handleLogout} />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Profil: semua role yang sudah masuk */}
+      <Route
+        path="/profil"
+        element={
+          <ProtectedRoute user={user}>
+            <DashboardLayout user={user} onLogout={handleLogout}>
+              <ProfilePage />
+            </DashboardLayout>
           </ProtectedRoute>
         }
       />

@@ -14,17 +14,9 @@ export default function AuthHero() {
 
       {/* Top Header / Identification */}
       <div className="relative z-10">
-        <div className="inline-flex items-center gap-3.5 flex-wrap">
-          <div className="flex items-center font-display text-xl sm:text-2xl tracking-tight font-bold">
-            <span className="text-[#f5b51b]">Safe</span>
-            <span className="text-white">Sesi</span>
-          </div>
-
-          <div className="hidden sm:block h-4 w-[1.5px] bg-[#e6deff]/30 rounded-full" />
-
-          <span className="text-xs sm:text-sm text-[#e6deff]/90 tracking-wide font-medium">
-            Psikologi · Universitas Padjadjaran
-          </span>
+        <div className="flex items-center font-display text-xl sm:text-2xl tracking-tight font-bold">
+          <span className="text-[#f5b51b]">Safe</span>
+          <span className="text-white">Sesi</span>
         </div>
       </div>
 
@@ -88,10 +80,7 @@ export default function AuthHero() {
         <p className="text-[11px] text-[#e6deff]/80">
           <span className="text-[#f5b51b] font-semibold">Safe</span>
           <span className="text-white font-semibold">Sesi</span>
-          <span className="text-[#e6deff]/80">
-            {' '}
-            © 2026 · Fakultas Psikologi, Universitas Padjadjaran
-          </span>
+          <span className="text-[#e6deff]/80"> © 2026</span>
         </p>
       </div>
     </section>

@@ -3,7 +3,32 @@ import { useNavigate } from 'react-router-dom'
 import AuthBackground from '../components/auth/AuthBackground'
 import { activate } from '../services/auth'
 
-export default function ActivationPage() {
+// Halaman yang sama dipakai untuk aktivasi akun baru dan atur ulang kata sandi (endpoint backend-nya sama).
+const COPY = {
+  activate: {
+    title: 'Aktivasi Akun',
+    subtitle: 'Buat kata sandi baru untuk mengaktifkan akun praktikum konseling Anda.',
+    invalidLink: 'Tautan aktivasi tidak valid atau tidak memuat token aktivasi.',
+    failed: 'Aktivasi akun gagal. Tautan mungkin telah kedaluwarsa atau sudah digunakan.',
+    successTitle: 'Akun Berhasil Diaktifkan!',
+    successBody: 'Kata sandi Anda telah disimpan. Silakan masuk ke aplikasi menggunakan email dan kata sandi baru Anda.',
+    submit: 'Aktifkan Akun',
+    loading: 'Mengaktifkan Akun...',
+  },
+  reset: {
+    title: 'Atur Ulang Kata Sandi',
+    subtitle: 'Buat kata sandi baru untuk akun Anda. Semua perangkat yang sedang masuk akan keluar.',
+    invalidLink: 'Tautan atur ulang tidak valid atau tidak memuat token.',
+    failed: 'Kata sandi gagal diatur ulang. Tautan mungkin telah kedaluwarsa atau sudah digunakan.',
+    successTitle: 'Kata Sandi Berhasil Diatur Ulang!',
+    successBody: 'Silakan masuk ke aplikasi menggunakan email dan kata sandi baru Anda.',
+    submit: 'Simpan Kata Sandi',
+    loading: 'Menyimpan...',
+  },
+}
+
+export default function ActivationPage({ mode = 'activate' }) {
+  const copy = COPY[mode]
   const navigate = useNavigate()
   // Token dibaca dari hash URL (#token=...) agar tidak ikut terkirim ke server atau tercatat di log.
   const [token] = useState(() => new URLSearchParams(window.location.hash.replace(/^#/, '')).get('token') || '')
@@ -11,7 +36,7 @@ export default function ActivationPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState(() => (token ? '' : 'Tautan aktivasi tidak valid atau tidak memuat token aktivasi.'))
+  const [error, setError] = useState(() => (token ? '' : copy.invalidLink))
   const [isSuccess, setIsSuccess] = useState(false)
 
   const handleSubmit = async (e) => {
@@ -35,7 +60,7 @@ export default function ActivationPage() {
       await activate(token, password)
       setIsSuccess(true)
     } catch (err) {
-      setError(err.message || 'Aktivasi akun gagal. Tautan mungkin telah kedaluwarsa atau sudah digunakan.')
+      setError(err.message || copy.failed)
     } finally {
       setIsLoading(false)
     }
@@ -60,11 +85,11 @@ export default function ActivationPage() {
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl text-[#1e1a34] font-bold tracking-tight mb-1">
-            Aktivasi Akun <span className="text-[#f5b51b]">Safe</span>
+            {copy.title} <span className="text-[#f5b51b]">Safe</span>
             <span className="text-[#352f55]">Sesi</span>
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-            Buat kata sandi baru untuk mengaktifkan akun praktikum konseling Anda.
+            {copy.subtitle}
           </p>
         </div>
 
@@ -88,10 +113,10 @@ export default function ActivationPage() {
             </div>
             <div>
               <h3 className="text-base font-bold text-slate-800 mb-1">
-                Akun Berhasil Diaktifkan!
+                {copy.successTitle}
               </h3>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Kata sandi Anda telah disimpan. Silakan masuk ke aplikasi menggunakan email dan kata sandi baru Anda.
+                {copy.successBody}
               </p>
             </div>
             <button
@@ -177,10 +202,10 @@ export default function ActivationPage() {
               className="w-full h-10 mt-2 bg-[#f5b51b] hover:bg-[#e2a613] disabled:opacity-60 disabled:cursor-not-allowed text-[#1e1a34] font-bold text-xs sm:text-sm rounded-xl shadow-xs active:scale-[0.99] transition flex items-center justify-center gap-1.5 cursor-pointer"
             >
               {isLoading ? (
-                <span>Mengaktifkan Akun...</span>
+                <span>{copy.loading}</span>
               ) : (
                 <>
-                  <span>Aktifkan Akun</span>
+                  <span>{copy.submit}</span>
                   <span className="material-symbols-outlined text-[18px]">
                     check
                   </span>
