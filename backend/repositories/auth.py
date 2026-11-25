@@ -39,7 +39,7 @@ async def get_user_by_activation_hash(conn: asyncpg.Connection, token_hash: str)
     """Dikunci (FOR UPDATE) agar token yang sama tidak bisa dipakai dua permintaan sekaligus."""
     row = await conn.fetchrow(
         """
-        SELECT id, activation_token_expires_at, activated_at
+        SELECT id, activation_token_expires_at, activation_token_purpose, activated_at
         FROM users
         WHERE activation_token_hash = $1 AND deleted_at IS NULL
         FOR UPDATE
@@ -50,17 +50,53 @@ async def get_user_by_activation_hash(conn: asyncpg.Connection, token_hash: str)
 
 
 async def activate_user(conn: asyncpg.Connection, user_id: int, password_hash: str) -> None:
-    """Menetapkan password dan menghapus token aktivasi: token hanya bisa dipakai sekali."""
+    """Menetapkan password dan menghapus token (aktivasi atau reset): token hanya bisa dipakai sekali."""
     await conn.execute(
         """
         UPDATE users
-        SET password_hash = $2, activated_at = now(),
-            activation_token_hash = NULL, activation_token_expires_at = NULL
+        SET password_hash = $2, activated_at = COALESCE(activated_at, now()),
+            activation_token_hash = NULL, activation_token_expires_at = NULL,
+            activation_token_purpose = 'activation'
         WHERE id = $1
         """,
         user_id,
         password_hash,
     )
+
+
+async def get_user_for_admin_reset(conn: asyncpg.Connection, user_id: int) -> dict[str, Any] | None:
+    row = await conn.fetchrow("SELECT id, role::text AS role, activated_at FROM users WHERE id = $1 AND deleted_at IS NULL", user_id)
+    return dict(row) if row else None
+
+
+async def issue_reset_token(
+    conn: asyncpg.Connection, user_id: int, token_hash: str, expires_at: datetime
+) -> dict[str, Any] | None:
+    """Menimpa slot token pengguna (satu per pengguna), jadi token reset lama otomatis batal.
+    Hanya akun aktif; None bila akun tidak ada, sudah dihapus, atau belum aktif."""
+    row = await conn.fetchrow(
+        """
+        UPDATE users
+        SET activation_token_hash = $2, activation_token_expires_at = $3, activation_token_purpose = 'reset'
+        WHERE id = $1 AND activated_at IS NOT NULL AND deleted_at IS NULL
+        RETURNING id, name, email, role::text AS role
+        """,
+        user_id,
+        token_hash,
+        expires_at,
+    )
+    return dict(row) if row else None
+
+
+async def get_password_hash_for_update(conn: asyncpg.Connection, user_id: int) -> str | None:
+    """Dikunci (FOR UPDATE) agar dua permintaan ganti kata sandi tidak saling menimpa."""
+    return await conn.fetchval(
+        "SELECT password_hash FROM users WHERE id = $1 AND deleted_at IS NULL FOR UPDATE", user_id
+    )
+
+
+async def set_password_hash(conn: asyncpg.Connection, user_id: int, password_hash: str) -> None:
+    await conn.execute("UPDATE users SET password_hash = $2 WHERE id = $1", user_id, password_hash)
 
 
 async def insert_refresh_token(
@@ -110,4 +146,11 @@ async def revoke_refresh_family(conn: asyncpg.Connection, family_id: int) -> Non
     await conn.execute(
         "UPDATE refresh_tokens SET revoked_at = now() WHERE family_id = $1 AND revoked_at IS NULL",
         family_id,
+    )
+
+
+async def revoke_all_refresh_families(conn: asyncpg.Connection, user_id: int) -> None:
+    """Mencabut semua refresh token pengguna di semua perangkat (mis. setelah ganti kata sandi)."""
+    await conn.execute(
+        "UPDATE refresh_tokens SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL", user_id
     )

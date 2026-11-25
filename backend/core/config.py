@@ -76,8 +76,17 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_MINUTES: int = 15
     REFRESH_TOKEN_DAYS: int = 7  # sama dengan purge_old_refresh_tokens(days=7)
     ACTIVATION_TOKEN_HOURS: int = 72
+    RESET_TOKEN_MINUTES: int = 60  # masa berlaku tautan atur ulang kata sandi dari admin
     # Alamat frontend untuk menyusun tautan aktivasi akun.
     FRONTEND_URL: str = "http://localhost:5173"
+
+    # Pembatasan percobaan endpoint auth (angka batasnya ada di core/rate_limit.py). Matikan hanya di tes/dev.
+    RATE_LIMIT_ENABLED: bool = True
+    # Nyalakan HANYA bila API berada tepat di belakang satu reverse proxy tepercaya (nginx, Caddy,
+    # load balancer) yang menambahkan IP klien ke X-Forwarded-For, dan port API tidak bisa diakses
+    # langsung dari luar. Bila dinyalakan tanpa proxy, klien bisa memalsukan header itu untuk
+    # menghindari batas. Bila dimatikan di belakang proxy, semua pengguna terlihat dari satu IP.
+    TRUST_PROXY_HEADERS: bool = False
 
     @property
     def is_development(self) -> bool:

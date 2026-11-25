@@ -32,6 +32,14 @@ def run_async(coro: Coroutine[Any, Any, Any]) -> Any:
     return val
 
 
+def make_request(ip: str = "10.0.0.1", headers: dict[str, str] | None = None) -> MagicMock:
+    """Request palsu untuk memanggil endpoint langsung: hanya client.host dan headers yang dipakai."""
+    request = MagicMock()
+    request.client.host = ip
+    request.headers = headers or {}
+    return request
+
+
 class BaseTestCase(unittest.TestCase):
     """Base class untuk pengujian unit & integrasi backend SafeSesi."""
 
