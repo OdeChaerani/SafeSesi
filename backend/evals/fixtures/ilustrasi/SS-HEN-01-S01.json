@@ -1,0 +1,274 @@
+{
+  "fixture_id": "SS-HEN-01-S01",
+  "title": "Ilustrasi SafeSesi SS-HEN-01-S01",
+  "source": "Ilustrasi_Sesi_dan_Evaluasi_SafeSesi_final.docx (ilustratif, bukan validasi ahli)",
+  "language": "id",
+  "duration_known": true,
+  "duration_seconds": 672,
+  "change_target": "Mengurangi atau menghentikan kebiasaan merokok.",
+  "change_target_assumed": false,
+  "initial_summary": "Pak Hendra, 40 tahun, pemilik bengkel motor kecil. Ia datang karena istrinya meminta ia berhenti merokok, dan ia belum tentu ingin berubah. Arah latihan: bantu Pak Hendra memperjelas pandangannya tentang kebiasaan merokok dan, bila ia mau, cara mengurangi atau menghentikannya.",
+  "expected_globals": {
+    "cultivating_change_talk": 3,
+    "softening_sustain_talk": 4,
+    "partnership": 3,
+    "empathy": 4
+  },
+  "expected_global_reasons": {
+    "cultivating_change_talk": "K06 dan K09 mengundang alasan dan kemampuan berubah dari klien, tetapi pernyataan “saya bukan tidak mau” (C08) tidak diperdalam; K09 langsung beralih ke kemampuan.",
+    "softening_sustain_talk": "K07 merefleksikan dua sisi dan berakhir pada alasan berubah; setelah K03 konselor tidak menggali alasan mempertahankan rokok.",
+    "partnership": "K04 memberi nasihat tanpa izin; K05 memperbaikinya dan mengembalikan pilihan, tetapi tidak ada upaya meminta izin atau menegosiasikan arah pembahasan.",
+    "empathy": "K03, K05, dan K07 merefleksikan perasaan dan maksud klien secara akurat; Discord mereda setelah K05."
+  },
+  "expected_frequencies": {
+    "GI": 0,
+    "P": 1,
+    "PWP": 0,
+    "Q": 3,
+    "SR": 2,
+    "CR": 3,
+    "AF": 1,
+    "SEEK": 0,
+    "EA": 1,
+    "CONFRONT": 0
+  },
+  "expected_processes": [
+    {
+      "process": "engaging",
+      "text": "Terlihat upaya memahami perasaan klien (K02–K03) serta memperbaiki hubungan setelah klien merasa digurui (K05–C05)."
+    },
+    {
+      "process": "focusing",
+      "text": "Belum cukup bukti untuk mengidentifikasi proses ini; arah pembahasan belum dipilih atau disepakati bersama klien."
+    },
+    {
+      "process": "evoking",
+      "text": "Terlihat upaya mengundang hal yang kurang menyenangkan dari merokok (K06–C06) dan kemampuan berubah (K09–C09), serta refleksi yang diakhiri alasan berubah (K07)."
+    },
+    {
+      "process": "planning",
+      "text": "Belum tampak pembahasan rencana tindakan; pada C10 klien baru bersedia memikirkan gagasan menyibukkan tangan tanpa menentukan waktu."
+    }
+  ],
+  "expected_feedback": [
+    {
+      "kind": "strength",
+      "text": "K07 merefleksikan dua sisi dan menutupnya dengan alasan berubah; C07 memperlihatkan Pak Hendra bersedia menceritakan pengalaman berhenti sebelumnya (H1)."
+    },
+    {
+      "kind": "strength",
+      "text": "K05 mengakui nasihat yang terlalu cepat dan menegaskan hak klien memutuskan; Discord mereda pada C05."
+    },
+    {
+      "kind": "improvement",
+      "text": "K04 memberi nasihat dan peringatan tanpa izin (Persuade), sehingga memunculkan Discord pada C04. Selama Discord tampak, klien menjawab singkat dan tidak menambah informasi baru."
+    },
+    {
+      "kind": "alternative_response",
+      "text": "Bagi Bapak, rokok itu jeda yang penting di bengkel, sedangkan istri Bapak mengkhawatirkannya. Dari kebiasaan ini, bagian mana yang menurut Bapak sendiri mulai mengganggu?"
+    }
+  ],
+  "turns": [
+    {
+      "turn_no": 1,
+      "label": "K01",
+      "speaker": "counselor",
+      "content": "Apa yang membawa Bapak datang ke sini hari ini?",
+      "expected_codes": [
+        "Q"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": null
+    },
+    {
+      "turn_no": 2,
+      "label": "C01",
+      "speaker": "client",
+      "content": "Istri saya yang suruh. Katanya saya harus berhenti merokok."
+    },
+    {
+      "turn_no": 3,
+      "label": "K02",
+      "speaker": "counselor",
+      "content": "Istri Bapak yang meminta Bapak berhenti merokok.",
+      "expected_codes": [
+        "SR"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": null
+    },
+    {
+      "turn_no": 4,
+      "label": "C02",
+      "speaker": "client",
+      "content": "Ya. Sudah berkali-kali dia bilang. Padahal saya yang tahu badan saya sendiri."
+    },
+    {
+      "turn_no": 5,
+      "label": "K03",
+      "speaker": "counselor",
+      "content": "Bapak merasa paling tahu apa yang cocok untuk diri Bapak, dan terus diingatkan membuat Bapak kesal.",
+      "expected_codes": [
+        "CR"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": "Konselor menambahkan makna bahwa klien merasa paling tahu apa yang cocok untuknya dan kesal karena terus diingatkan (Complex Reflection)."
+    },
+    {
+      "turn_no": 6,
+      "label": "C03",
+      "speaker": "client",
+      "content": "Iya. Lagi pula rokok itu satu-satunya waktu saya bisa duduk sebentar di bengkel. Kalau tidak ada, rasanya tidak ada jeda."
+    },
+    {
+      "turn_no": 7,
+      "label": "K04",
+      "speaker": "counselor",
+      "content": "Tapi Bapak tahu kan rokok itu merusak kesehatan, dan keluarga Bapak bergantung pada Bapak. Sebaiknya Bapak mulai kurangi dari sekarang.",
+      "expected_codes": [
+        "P"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": "Konselor memberi peringatan dan nasihat tanpa izin (“Sebaiknya Bapak mulai kurangi”). Nada menceramahi belum cukup jelas untuk Confront, sehingga dikodekan Persuade (masuk Total MINA)."
+    },
+    {
+      "turn_no": 8,
+      "label": "C04",
+      "speaker": "client",
+      "content": "Nah, kan. Sama saja seperti istri saya. Saya ke sini bukan untuk diceramahi."
+    },
+    {
+      "turn_no": 9,
+      "label": "K05",
+      "speaker": "counselor",
+      "content": "Maaf, tadi saya langsung menasihati. Bapak sudah sering mendengar itu di rumah, dan Bapak ingin bisa memutuskan sendiri apa yang cocok untuk diri Bapak. Itu hak Bapak.",
+      "expected_codes": [
+        "CR",
+        "EA"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": "Kalimat pertama (“Maaf, tadi saya langsung menasihati”) tidak dikode; kalimat kedua merefleksikan keinginan klien memutuskan sendiri (Complex Reflection); kalimat ketiga (“Itu hak Bapak”) menegaskan kendali klien (Emphasizing Autonomy)."
+    },
+    {
+      "turn_no": 10,
+      "label": "C05",
+      "speaker": "client",
+      "content": "Ya, begitu. Kalau diatur-atur, saya malah malas."
+    },
+    {
+      "turn_no": 11,
+      "label": "K06",
+      "speaker": "counselor",
+      "content": "Akhir-akhir ini, apa yang menurut Bapak mulai kurang enak dari merokok?",
+      "expected_codes": [
+        "Q"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": null
+    },
+    {
+      "turn_no": 12,
+      "label": "C06",
+      "speaker": "client",
+      "content": "Ya... rokok sekarang mahal. Baju saya juga sering bolong kena bara. Rasanya juga tidak seenak dulu."
+    },
+    {
+      "turn_no": 13,
+      "label": "K07",
+      "speaker": "counselor",
+      "content": "Rokok itu jadi jeda yang Bapak butuhkan di bengkel, tetapi harganya makin mahal dan rasanya tidak seenak dulu.",
+      "expected_codes": [
+        "CR"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": "Refleksi dua sisi yang diakhiri dengan alasan berubah (harga dan rasa), sehingga menambah makna dari ucapan klien."
+    },
+    {
+      "turn_no": 14,
+      "label": "C07",
+      "speaker": "client",
+      "content": "Iya, begitu. Pernah juga saya coba berhenti. Cuma dua tiga hari, tapi saya uring-uringan dan anak buah di bengkel jadi kena marah."
+    },
+    {
+      "turn_no": 15,
+      "label": "K08",
+      "speaker": "counselor",
+      "content": "Bapak sudah pernah mencoba, dan itu menunjukkan Bapak sungguh-sungguh memikirkannya.",
+      "expected_codes": [
+        "AF"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": "Konselor mengakui usaha spesifik klien mencoba berhenti dan kesungguhannya memikirkan perubahan (Affirm)."
+    },
+    {
+      "turn_no": 16,
+      "label": "C08",
+      "speaker": "client",
+      "content": "Ya, saya bukan tidak mau. Cuma takut tidak kuat lagi. Takut ngamuk lagi di bengkel dan di rumah."
+    },
+    {
+      "turn_no": 17,
+      "label": "K09",
+      "speaker": "counselor",
+      "content": "Kalau suatu hari Bapak mencobanya lagi, apa yang kira-kira akan membuat Bapak merasa lebih mampu?",
+      "expected_codes": [
+        "Q"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": null
+    },
+    {
+      "turn_no": 18,
+      "label": "C09",
+      "speaker": "client",
+      "content": "Mungkin kalau tangan saya ada yang dikerjakan. Tapi saya belum tahu juga."
+    },
+    {
+      "turn_no": 19,
+      "label": "K10",
+      "speaker": "counselor",
+      "content": "Bapak sudah punya satu gagasan sendiri, yaitu menyibukkan tangan.",
+      "expected_codes": [
+        "SR"
+      ],
+      "acceptable_alternatives": [],
+      "same_as_previous_volley": false,
+      "not_coded": false,
+      "global_evidence_notes": [],
+      "expert_note": null
+    },
+    {
+      "turn_no": 20,
+      "label": "C10",
+      "speaker": "client",
+      "content": "Ya, itu bisa saya pikirkan. Belum tahu kapan."
+    }
+  ]
+}
