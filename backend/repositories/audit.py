@@ -1,4 +1,7 @@
-"""Catatan audit tindakan admin (tabel admin_audit_log). Tidak pernah menerima token, hash token, atau tautan."""
+"""Catatan audit tindakan admin (tabel admin_audit_log). Tidak pernah menerima token, hash token, atau tautan.
+
+Nilai `action` yang diizinkan dibatasi CHECK di database (lihat migrasi admin_audit_log).
+"""
 from __future__ import annotations
 
 import asyncpg

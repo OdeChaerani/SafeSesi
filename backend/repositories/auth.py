@@ -88,6 +88,25 @@ async def issue_reset_token(
     return dict(row) if row else None
 
 
+async def issue_activation_token(
+    conn: asyncpg.Connection, user_id: int, token_hash: str, expires_at: datetime
+) -> dict[str, Any] | None:
+    """Menimpa slot token aktivasi, jadi tautan lama otomatis batal. Hanya akun non-admin yang belum aktif;
+    None bila syarat itu tidak (lagi) terpenuhi."""
+    row = await conn.fetchrow(
+        """
+        UPDATE users
+        SET activation_token_hash = $2, activation_token_expires_at = $3, activation_token_purpose = 'activation'
+        WHERE id = $1 AND activated_at IS NULL AND password_hash IS NULL AND role <> 'admin' AND deleted_at IS NULL
+        RETURNING id, name, email, role::text AS role
+        """,
+        user_id,
+        token_hash,
+        expires_at,
+    )
+    return dict(row) if row else None
+
+
 async def get_password_hash_for_update(conn: asyncpg.Connection, user_id: int) -> str | None:
     """Dikunci (FOR UPDATE) agar dua permintaan ganti kata sandi tidak saling menimpa."""
     return await conn.fetchval(

@@ -36,7 +36,10 @@ from repositories.auth import (
     revoke_refresh_family,
     set_password_hash,
 )
+from repositories.profiles import get_profile
+from repositories.users import list_user_classes
 from schemas.auth import ActivateRequest, ChangePasswordRequest, LoginRequest, TokenResponse
+from schemas.profile import AdminMe, LecturerMe, StudentMe
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -220,6 +223,30 @@ async def activate_account(
     if is_reset:
         return {"message": "Kata sandi berhasil diatur ulang. Silakan masuk dengan kata sandi baru."}
     return {"message": "Akun berhasil diaktifkan. Silakan masuk dengan kata sandi baru."}
+
+
+@router.get("/me", response_model=StudentMe | LecturerMe | AdminMe)
+async def me(
+    user: dict[str, Any] = Depends(get_current_user), conn: asyncpg.Connection = Depends(get_db)
+) -> Any:
+    """Data akun pengguna yang sedang masuk, dibaca dari database (get_current_user), bukan dari token.
+
+    Tidak menerima parameter id: hanya data milik sendiri. Baris profil yang belum ada menjadi nilai kosong.
+    """
+    # status selalu "active": akun yang belum aktif atau dihapus sudah ditolak get_current_user.
+    base = {k: user[k] for k in ("id", "name", "email", "role", "created_at", "activated_at")} | {"status": "active"}
+    if user["role"] == "admin":
+        return AdminMe(**base)
+    profile = await get_profile(conn, user["id"], user["role"])
+    classes = await list_user_classes(conn, user["id"])
+    if user["role"] == "student":
+        return StudentMe(
+            **base,
+            npm=getattr(profile, "npm", None),
+            asal_institusi=getattr(profile, "asal_institusi", None),
+            classes=classes,
+        )
+    return LecturerMe(**base, nip=getattr(profile, "nip", None), classes=classes)
 
 
 @router.post("/change-password", response_model=TokenResponse)

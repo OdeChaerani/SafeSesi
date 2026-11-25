@@ -12,6 +12,11 @@ class TestNormalize(BaseTestCase):
         self.assertEqual((profile.npm, profile.asal_institusi), ("DEV-1", None))
         self.assertEqual(normalize_lecturer_profile(" DEV-2 ").nip, "DEV-2")
 
+    def test_npm_and_nip_lose_every_space_institution_keeps_single_spaces(self):
+        profile = normalize_student_profile(" 12 34\t56 ", "  Kampus   Fiktif \n Timur ")
+        self.assertEqual((profile.npm, profile.asal_institusi), ("123456", "Kampus Fiktif Timur"))
+        self.assertEqual(normalize_lecturer_profile("11111111 222222 3 444").nip, "111111112222223444")
+
     def test_empty_npm_accepted_with_institution(self):
         for npm in (None, "", "  "):
             profile = normalize_student_profile(npm, " Kampus Fiktif ")
@@ -28,7 +33,7 @@ class TestNormalize(BaseTestCase):
 
     def test_length_limits_match_database(self):
         normalize_student_profile("x" * 30, "y" * 100)
-        normalize_lecturer_profile(" " + "x" * 30 + " ")  # batas dihitung setelah dipangkas
+        normalize_lecturer_profile(" x" * 30)  # batas dihitung setelah spasi dibuang
         for call in (
             lambda: normalize_student_profile("x" * 31, None),
             lambda: normalize_student_profile(None, "y" * 101),

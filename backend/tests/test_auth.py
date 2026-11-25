@@ -291,14 +291,15 @@ class TestAdminUsers(BaseTestCase):
         self.admin = {"id": 1, "name": "Admin", "role": "admin"}
         self.settings = _settings()
 
+    @patch("api.admin.insert_profile", new_callable=AsyncMock)
     @patch("api.admin.get_settings")
     @patch("api.admin.create_user_with_activation", new_callable=AsyncMock)
-    def test_admin_create_user_success(self, mock_create, mock_settings):
+    def test_admin_create_user_success(self, mock_create, mock_settings, _mock_profile):
         mock_settings.return_value = self.settings
         mock_create.return_value = {"id": 20, "name": "Mhs Baru", "email": "mhs@safesesi.ac.id", "role": "student"}
 
-        payload = CreateUserRequest(name="Mhs Baru", email="mhs@safesesi.ac.id", role="student")
-        res = self.run_async(create_user(payload, _admin=self.admin, conn=self.conn))
+        payload = CreateUserRequest(name="Mhs Baru", email="mhs@safesesi.ac.id", role="student", npm="DEV-1")
+        res = self.run_async(create_user(payload, admin=self.admin, conn=self.conn))
 
         self.assertIn("activation_url", res)
         self.assertIn("#token=", res["activation_url"])
@@ -310,10 +311,9 @@ class TestAdminUsers(BaseTestCase):
         mock_settings.return_value = self.settings
         mock_create.side_effect = asyncpg.UniqueViolationError()
 
-        payload = CreateUserRequest(name="Mhs", email="duplicate@safesesi.ac.id", role="student")
-        with self.assertRaises(HTTPException) as ctx:
-            self.run_async(create_user(payload, _admin=self.admin, conn=self.conn))
-        self.assertEqual(ctx.exception.status_code, 409)
+        payload = CreateUserRequest(name="Mhs", email="duplicate@safesesi.ac.id", role="student", npm="DEV-1")
+        res = self.run_async(create_user(payload, admin=self.admin, conn=self.conn))
+        self.assertEqual(res.status_code, 409)
 
 
 class TestAuthDependencies(BaseTestCase):

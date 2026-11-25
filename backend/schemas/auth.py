@@ -40,6 +40,10 @@ class CreateUserRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     email: str = Field(..., max_length=254)
     role: Role
+    # Isian profil menurut role; aturan dan normalisasinya di repositories/profiles.py.
+    npm: str | None = None
+    asal_institusi: str | None = None
+    nip: str | None = None
 
     @field_validator("email")
     @classmethod
