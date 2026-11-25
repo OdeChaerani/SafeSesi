@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any, Literal
-from pydantic import field_validator
+from pydantic import ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Jalur berkas .env di direktori backend
@@ -96,12 +96,17 @@ class Settings(BaseSettings):
         mode="before",
     )
     @classmethod
-    def upgrade_deprecated_models(cls, v: Any) -> str:
+    def upgrade_deprecated_models(cls, v: Any, info: ValidationInfo) -> Any:
+        # Variabel yang tidak diset memakai default; yang diset tapi kosong ditolak, tanpa pengganti diam-diam.
+        if v is None or (isinstance(v, str) and not v.strip()):
+            raise ValueError(
+                f"{info.field_name} kosong. Isi nama model Gemini, atau hapus barisnya agar memakai default di core/config.py."
+            )
         # Hanya nama yang benar-benar deprecated; gemini-2.5-flash-lite masih tersedia.
         deprecated = {"gemini-2.5-flash": "gemini-3.8-flash", "gemini-2.5-pro": "gemini-3.8-flash"}
         if isinstance(v, str):
             v = deprecated.get(v.strip(), v.strip())
-        return v or "gemini-3.8-flash"
+        return v
 
     @field_validator(
         "GEMINI_THINKING_BUDGET_STATE",

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import os
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from google.genai import errors as genai_errors
+from pydantic import ValidationError
 
 from core.config import Settings
 from core.errors import LLMServiceError
@@ -266,3 +268,39 @@ class TestRoleConfigForwarding(BaseTestCase):
             prompt.index("UCAPAN-TERKINI"),
         ]
         self.assertEqual(order, sorted(order))
+
+
+class TestGeminiModelNames(unittest.TestCase):
+    """Nama model kosong harus menggagalkan startup, bukan diam-diam diganti model lain."""
+
+    FIELDS = [name for name in Settings.model_fields if name.startswith("GEMINI_MODEL_")]
+
+    def setUp(self):
+        env = {k: v for k, v in os.environ.items() if not k.upper().startswith("GEMINI_MODEL_")}
+        p = patch.dict(os.environ, env, clear=True)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def test_blank_rejected_for_every_model_variable(self):
+        self.assertEqual(len(self.FIELDS), 9)
+        for field in self.FIELDS:
+            for blank in ("", "   "):
+                with self.subTest(field=field, value=blank):
+                    with self.assertRaisesRegex(ValidationError, f"{field} kosong"):
+                        Settings(_env_file=None, **{field: blank})
+
+    def test_blank_environment_variable_rejected(self):
+        os.environ["GEMINI_MODEL_NOTES"] = ""
+        with self.assertRaisesRegex(ValidationError, "GEMINI_MODEL_NOTES kosong"):
+            Settings(_env_file=None)
+
+    def test_valid_name_accepted_and_trimmed(self):
+        for field in self.FIELDS:
+            with self.subTest(field=field):
+                s = Settings(_env_file=None, **{field: "  model-uji  "})
+                self.assertEqual(getattr(s, field), "model-uji")
+
+    def test_unset_variables_use_defaults(self):
+        s = Settings(_env_file=None)
+        for field in self.FIELDS:
+            self.assertEqual(getattr(s, field), Settings.model_fields[field].default)
