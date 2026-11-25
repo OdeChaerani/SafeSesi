@@ -8,10 +8,11 @@ export default function Button({
   disabled = false,
   type = 'button',
   onClick,
+  loading = false,
   ...props
 }) {
   const baseStyles =
-    'inline-flex items-center justify-center font-bold transition-all cursor-pointer select-none focus:outline-none'
+    'inline-flex items-center justify-center font-bold transition-all cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#352f55] focus-visible:ring-offset-2'
 
   const variants = {
     primary:
@@ -41,14 +42,16 @@ export default function Button({
   return (
     <button
       type={type}
-      disabled={disabled}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
       onClick={onClick}
       className={`${baseStyles} ${variants[variant] || variants.primary} ${
         sizes[size] || sizes.md
       } ${className}`}
       {...props}
     >
-      {icon && (
+      {loading && <span className="ss-spinner" aria-hidden="true" />}
+      {icon && !loading && (
         <span
           className={`material-symbols-outlined ${
             iconSizes[size] || 'text-[16px]'

@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom'
+import { getRoleLabel } from '../../services/auth'
 
 const STUDENT_NAV_ITEMS = [
   { id: 'beranda', label: 'Beranda', icon: 'home', path: '/beranda' },
@@ -17,7 +18,7 @@ const LECTURER_NAV_ITEMS = [
 ]
 
 const ADMIN_NAV_ITEMS = [
-  { id: 'admin', label: 'Portal Admin', icon: 'admin_panel_settings', path: '/admin' },
+  { id: 'pengguna', label: 'Pengguna', icon: 'group', path: '/admin/pengguna' },
 ]
 
 export default function Sidebar({
@@ -35,14 +36,7 @@ export default function Sidebar({
     navItems = ADMIN_NAV_ITEMS
   }
 
-  const roleLabel =
-    user?.role === 'student'
-      ? 'Mahasiswa'
-      : user?.role === 'lecturer'
-      ? 'Dosen Praktikum'
-      : user?.role === 'admin'
-      ? 'Administrator'
-      : user?.role || 'Pengguna'
+  const roleLabel = getRoleLabel(user?.role)
 
   return (
     <aside

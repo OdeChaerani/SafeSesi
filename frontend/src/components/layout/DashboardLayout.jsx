@@ -14,6 +14,7 @@ export default function DashboardLayout({
   return (
     <div className="relative min-h-screen bg-surface font-body text-body text-on-surface">
       <Navbar
+        user={user}
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
         onLogout={onLogout}

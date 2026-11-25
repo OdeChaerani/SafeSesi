@@ -31,10 +31,19 @@ class ActivateRequest(BaseModel):
     password: str = Field(..., max_length=128)
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(..., min_length=1, max_length=128)
+    new_password: str = Field(..., max_length=128)  # aturan lengkap di password_problem (sama dengan aktivasi)
+
+
 class CreateUserRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     email: str = Field(..., max_length=254)
     role: Role
+    # Isian profil menurut role; aturan dan normalisasinya di repositories/profiles.py.
+    npm: str | None = None
+    asal_institusi: str | None = None
+    nip: str | None = None
 
     @field_validator("email")
     @classmethod

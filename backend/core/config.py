@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any, Literal
-from pydantic import field_validator
+from pydantic import ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Jalur berkas .env di direktori backend
@@ -76,8 +76,17 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_MINUTES: int = 15
     REFRESH_TOKEN_DAYS: int = 7  # sama dengan purge_old_refresh_tokens(days=7)
     ACTIVATION_TOKEN_HOURS: int = 72
+    RESET_TOKEN_MINUTES: int = 60  # masa berlaku tautan atur ulang kata sandi dari admin
     # Alamat frontend untuk menyusun tautan aktivasi akun.
     FRONTEND_URL: str = "http://localhost:5173"
+
+    # Pembatasan percobaan endpoint auth (angka batasnya ada di core/rate_limit.py). Matikan hanya di tes/dev.
+    RATE_LIMIT_ENABLED: bool = True
+    # Nyalakan HANYA bila API berada tepat di belakang satu reverse proxy tepercaya (nginx, Caddy,
+    # load balancer) yang menambahkan IP klien ke X-Forwarded-For, dan port API tidak bisa diakses
+    # langsung dari luar. Bila dinyalakan tanpa proxy, klien bisa memalsukan header itu untuk
+    # menghindari batas. Bila dimatikan di belakang proxy, semua pengguna terlihat dari satu IP.
+    TRUST_PROXY_HEADERS: bool = False
 
     @property
     def is_development(self) -> bool:
@@ -96,12 +105,17 @@ class Settings(BaseSettings):
         mode="before",
     )
     @classmethod
-    def upgrade_deprecated_models(cls, v: Any) -> str:
+    def upgrade_deprecated_models(cls, v: Any, info: ValidationInfo) -> Any:
+        # Variabel yang tidak diset memakai default; yang diset tapi kosong ditolak, tanpa pengganti diam-diam.
+        if v is None or (isinstance(v, str) and not v.strip()):
+            raise ValueError(
+                f"{info.field_name} kosong. Isi nama model Gemini, atau hapus barisnya agar memakai default di core/config.py."
+            )
         # Hanya nama yang benar-benar deprecated; gemini-2.5-flash-lite masih tersedia.
         deprecated = {"gemini-2.5-flash": "gemini-3.8-flash", "gemini-2.5-pro": "gemini-3.8-flash"}
         if isinstance(v, str):
             v = deprecated.get(v.strip(), v.strip())
-        return v or "gemini-3.8-flash"
+        return v
 
     @field_validator(
         "GEMINI_THINKING_BUDGET_STATE",

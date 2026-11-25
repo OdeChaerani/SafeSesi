@@ -72,7 +72,7 @@ export default function LoginForm({ onSubmit, isLoading = false, error: propErro
                 setEmail(e.target.value)
                 if (localError) setLocalError('')
               }}
-              placeholder="nama@mail.unpad.ac.id"
+              placeholder="Masukkan email anda"
               required
               className="w-full h-10 px-3.5 bg-slate-50 text-[#1e1a34] text-xs sm:text-sm rounded-xl border border-slate-200 placeholder-slate-400 outline-none transition focus:bg-white focus:border-[#352f55] focus:ring-1 focus:ring-[#352f55]"
             />

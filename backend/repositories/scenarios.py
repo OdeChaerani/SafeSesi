@@ -139,6 +139,7 @@ async def validate_class_access(
         WHERE cs.scenario_id = $1
           AND cs.class_id = $2
           AND cm.user_id = $3
+          AND cm.deleted_at IS NULL
           AND cl.deleted_at IS NULL
           AND sc.deleted_at IS NULL
         """,

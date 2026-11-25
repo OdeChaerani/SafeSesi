@@ -64,3 +64,80 @@ body {
   .ss-fade-up, .ss-fade-in, .ss-grow-x { animation: none; }
   .ss-lift, .ss-lift:hover { transition: none; transform: none; }
 }
+
+/* Halaman admin Pengguna: mikro-interaksi 120-250 ms */
+.ss-spinner {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 9999px;
+  animation: ss-spin 0.7s linear infinite;
+}
+@keyframes ss-spin { to { transform: rotate(360deg); } }
+
+.ss-skeleton {
+  background: linear-gradient(90deg, #e9edf5 25%, #f6f8fc 50%, #e9edf5 75%);
+  background-size: 200% 100%;
+  animation: ss-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes ss-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+.ss-flash { animation: ss-flash 2.4s ease-out; }
+@keyframes ss-flash { 0%, 30% { background-color: #ffdea5; } }
+
+.ss-menu { animation: ss-menu-in 0.14s ease-out backwards; }
+@keyframes ss-menu-in { from { opacity: 0; transform: scale(0.95); } }
+
+.ss-drawer {
+  box-sizing: border-box;
+  margin: 0 0 0 auto;
+  padding: 0;
+  border: 0;
+  width: min(30rem, 100vw);
+  max-width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  box-shadow: -12px 0 32px -12px rgb(30 26 52 / 0.35);
+  animation: ss-drawer-in 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ss-drawer::backdrop { background: rgb(30 26 52 / 0.55); animation: ss-fade-in 0.22s ease-out; }
+.ss-drawer-closing { animation: ss-drawer-out 0.18s ease-in forwards; }
+.ss-drawer-closing::backdrop { animation: ss-fade-out 0.18s ease-in forwards; }
+@keyframes ss-drawer-in { from { transform: translateX(100%); } }
+@keyframes ss-drawer-out { to { transform: translateX(100%); } }
+@keyframes ss-fade-out { to { opacity: 0; } }
+
+.ss-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.22s ease, opacity 0.18s ease;
+}
+.ss-collapse[data-open='true'] { grid-template-rows: 1fr; opacity: 1; }
+/* Ruang 3px agar focus ring tidak terpotong overflow hidden. */
+.ss-collapse > div { min-height: 0; overflow: hidden; margin: 0 -3px; padding: 0 3px; }
+
+.ss-shake { animation: ss-shake 0.25s ease-in-out; }
+@keyframes ss-shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+
+.ss-check { transition: transform 0.15s ease; }
+.ss-check:checked { animation: ss-pop 0.2s ease-out; }
+@keyframes ss-pop { 50% { transform: scale(1.25); } }
+
+.ss-toast-in { animation: ss-toast-in 0.2s ease-out backwards; }
+.ss-toast-out { animation: ss-toast-out 0.18s ease-in forwards; }
+@keyframes ss-toast-in { from { opacity: 0; transform: translateY(8px); } }
+@keyframes ss-toast-out { to { opacity: 0; transform: translateX(16px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ss-spinner, .ss-skeleton, .ss-flash, .ss-menu, .ss-drawer, .ss-drawer::backdrop, .ss-drawer-closing,
+  .ss-drawer-closing::backdrop, .ss-shake, .ss-check:checked, .ss-toast-in, .ss-toast-out { animation: none; }
+  .ss-collapse, .ss-check { transition: none; }
+  /* Tanpa animasi, baris baru tetap ditandai dengan latar diam. */
+  .ss-flash { background-color: #ffdea5; }
+}
+
