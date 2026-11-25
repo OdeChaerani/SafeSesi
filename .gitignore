@@ -1,0 +1,38 @@
+# Environment & Credentials
+.env
+*.env
+backend/.env
+frontend/.env
+*.env.local
+
+# Dokumen acuan (DOCX/PDF) tetap lokal; catatan markdown ikut di-commit
+*.docx
+*.pdf
+backend/docs/
+.agents/
+
+# Fixture CASAA: transkrip latihan berhak cipta, dibangun ulang lokal (backend/evals/README.md)
+backend/evals/fixtures/casaa/
+# Hasil run evals (dapat memuat kutipan transkrip CASAA); folder tetap ada lewat .gitkeep
+backend/evals/results/*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+backend/venv/
+.pytest_cache/
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# System & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+graphify-out

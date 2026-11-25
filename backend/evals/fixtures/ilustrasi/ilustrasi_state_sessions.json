@@ -1,0 +1,1215 @@
+{
+  "source": "Ilustrasi_Sesi_dan_Evaluasi_SafeSesi_final.docx",
+  "note": "Dibangun otomatis oleh evals/scripts/replay_state_ilustrasi.py build-fixture. ambivalence_lean kondisi awal dipetakan manual dari teks dokumen (INITIAL_AMBIVALENCE_LEAN). Sesi lanjutan memakai Client State akhir sesi induk dari dokumen; dokumen tidak memisahkan alasan berubah/bertahan pada state akhir, sehingga reasons_* bernilai null.",
+  "scenarios": {
+    "SS-NAD-01": {
+      "code": "SS-NAD-01",
+      "persona": {
+        "name": "Nadia Maharani",
+        "age": 19,
+        "gender": "Perempuan",
+        "education": "Mahasiswi psikologi semester 3.",
+        "occupation": "Mahasiswi penuh waktu.",
+        "marital_status": "Belum menikah.",
+        "family_background": "Tinggal bersama orang tua dan adik. Orang tua menghargai tanggung jawab akademik; kondisi ekonomi keluarga tidak menjadi fokus masalah.",
+        "personality": "Menjaga komitmen, sulit menolak permintaan, dan khawatir mengecewakan orang lain.",
+        "communication_style": "Pada awal pertemuan menjawab singkat dan berhati-hati; lebih elaboratif ketika merasa dipahami.",
+        "additional_background": "Pertemanan dan pengalaman organisasi penting baginya. Rincian konflik yang langsung terkait masalah dicatat dalam Kasus."
+      },
+      "case": {
+        "main_problem": "Nadia kewalahan membagi tanggung jawab pada dua kepanitiaan dan satu organisasi, sementara tugas kuliah juga perlu diselesaikan.",
+        "history_impact": "Selama sekitar enam minggu, tenggat kegiatan dan tugas kuliah sering berdekatan. Tidur berkurang, dua tugas kuliah terlambat, dan Nadia lebih mudah kesal serta sulit fokus.",
+        "expectation_change_context": "Harapan awal: tetap terlibat dalam kegiatan organisasi yang memberi pertemanan dan pengalaman belajar tanpa membuat kuliah keteteran. Konteks perubahan perilaku: membagi atau membatasi tanggung jawab tambahan agar sesuai dengan kemampuan dan waktu yang tersedia.",
+        "health_condition": "Tidak ada informasi kesehatan khusus. Kelelahan dijelaskan sebagai dampak kesibukan, bukan diagnosis.",
+        "initial_summary": "Nadia, 19 tahun, mahasiswi psikologi semester 3. Ia aktif di dua kepanitiaan dan satu organisasi, dan belakangan merasa kewalahan membagi waktu dengan kuliah. Ia datang untuk membicarakannya. Arah latihan: bantu Nadia memperjelas keinginannya dan, bila ia mau, cara membagi atau membatasi tanggung jawab tambahan."
+      },
+      "hidden_facts": [
+        {
+          "code": "H1",
+          "short_title": "Kekhawatiran terhadap penilaian teman",
+          "fact": "Nadia takut dianggap tidak serius atau tidak dapat diandalkan jika meminta pengurangan tanggung jawab atau menolak tugas tambahan.",
+          "min_disclosure_level": "medium"
+        },
+        {
+          "code": "H2",
+          "short_title": "Pengalaman komentar kurang kompak",
+          "fact": "Pada kepanitiaan sebelumnya, seorang teman pernah menyebut Nadia kurang kompak ketika ia tidak dapat membantu karena tugas kuliah.",
+          "min_disclosure_level": "medium"
+        },
+        {
+          "code": "H3",
+          "short_title": "Pengalaman meminta bantuan desain",
+          "fact": "Pada acara sebelumnya, Nadia pernah meminta bantuan desain dan teman bersedia membantu. Pada kepanitiaan saat ini, ia belum meminta bantuan.",
+          "min_disclosure_level": "medium"
+        },
+        {
+          "code": "H4",
+          "short_title": "Pengalaman bersama orang tua soal tanggung jawab",
+          "fact": "Nadia pernah merasa bersalah setelah orang tua mempertanyakan tanggung jawab yang tidak ia tuntaskan.",
+          "min_disclosure_level": "high"
+        }
+      ],
+      "initial_state_doc": {
+        "Emotion": "Cemas dan kewalahan karena tenggat kuliah serta kegiatan organisasi bertumpuk.",
+        "Disclosure": "Terbatas (Guarded): bersedia membicarakan kesibukan, belum langsung menyampaikan kekhawatiran pribadi.",
+        "Ambivalence": "Alasan berubah: ingin beban berkurang agar kuliah tidak keteteran. Alasan bertahan: ingin tetap terlibat dalam kegiatan yang bermakna. Kecenderungan awal: kedua sisi sama kuat.",
+        "Discord": "Tidak tampak pada awal sesi."
+      },
+      "topics": [
+        "Beban dan rasa kewalahan",
+        "Riwayat dan dampak masalah",
+        "Harapan dan arah perubahan",
+        "Kekhawatiran terhadap penilaian teman",
+        "Pengalaman komentar kurang kompak",
+        "Pengalaman meminta bantuan desain",
+        "Pengalaman bersama orang tua soal tanggung jawab"
+      ]
+    },
+    "SS-SAR-01": {
+      "code": "SS-SAR-01",
+      "persona": {
+        "name": "Sari Wulandari",
+        "age": 28,
+        "gender": "Perempuan",
+        "education": "Pernah kuliah di program studi administrasi sampai semester 5, lalu berhenti.",
+        "occupation": "Staf administrasi di sebuah toko bahan bangunan dengan jadwal kerja bergilir (shift).",
+        "marital_status": "Belum menikah.",
+        "family_background": "Tinggal bersama ibu. Kakak laki-lakinya sudah lulus kuliah dan bekerja di kantor. Kondisi ekonomi keluarga cukup untuk kebutuhan sehari-hari, tetapi tidak berlebih.",
+        "personality": "Tekun bekerja, jarang menyampaikan keinginannya sendiri, dan cenderung meremehkan kemampuan dirinya.",
+        "communication_style": "Pada awal pertemuan menjawab singkat dan datar; lebih banyak bercerita ketika merasa didengarkan.",
+        "additional_background": "Beberapa teman seangkatannya sudah lulus. Rincian yang langsung terkait masalah dicatat dalam Kasus."
+      },
+      "case": {
+        "main_problem": "Sari ingin melanjutkan kuliah yang terhenti, tetapi ragu apakah ia sanggup menjalaninya sambil bekerja.",
+        "history_impact": "Sekitar empat tahun lalu Sari berhenti kuliah pada semester 5 karena biaya dan memilih bekerja. Pekerjaannya sekarang terasa tidak berkembang: tugas dan posisinya sama selama beberapa tahun, dan ia merasa tertinggal dari teman-temannya.",
+        "expectation_change_context": "Harapan awal: ingin tahu apakah melanjutkan kuliah mungkin dilakukan dan dapat membuat pekerjaannya lebih baik. Konteks perubahan perilaku: mencari informasi dan mendaftar kuliah kelas karyawan.",
+        "health_condition": "Tidak ada informasi kesehatan khusus.",
+        "initial_summary": "Sari, 28 tahun, bekerja sebagai staf administrasi di sebuah toko. Beberapa tahun lalu ia berhenti kuliah, dan belakangan ia mulai memikirkan untuk kuliah lagi. Ia datang untuk membicarakan hal itu. Arah latihan: bantu Sari memperjelas pandangannya tentang kuliah lagi dan langkah yang mungkin ia ambil, yaitu mencari informasi atau mendaftar kuliah kelas karyawan."
+      },
+      "hidden_facts": [
+        {
+          "code": "H1",
+          "short_title": "Pertimbangan biaya dan waktu",
+          "fact": "Sari sudah menghitung kasar biaya kuliah kelas karyawan dan merasa tabungannya belum cukup. Ia juga khawatir penghasilannya berkurang jika jam kerjanya dikurangi untuk kuliah.",
+          "min_disclosure_level": "medium"
+        },
+        {
+          "code": "H2",
+          "short_title": "Dukungan kakak",
+          "fact": "Kakaknya sudah lulus dan pernah menawarkan diri mencarikan informasi kelas karyawan. Sari belum menanggapi tawaran itu.",
+          "min_disclosure_level": "medium"
+        },
+        {
+          "code": "H3",
+          "short_title": "Pernah membuka laman pendaftaran",
+          "fact": "Sari pernah membuka laman pendaftaran sebuah kampus, tetapi menutupnya sebelum selesai karena bingung harus mulai dari mana.",
+          "min_disclosure_level": "medium"
+        },
+        {
+          "code": "H4",
+          "short_title": "Rasa malu dan takut gagal lagi",
+          "fact": "Sari malu karena dulu berhenti di tengah jalan. Ia takut gagal lagi dan dibandingkan dengan teman-temannya yang sudah lulus.",
+          "min_disclosure_level": "high"
+        }
+      ],
+      "initial_state_doc": {
+        "Emotion": "Ragu dan sedikit canggung; ingin membicarakan kuliah, tetapi belum yakin hal itu realistis.",
+        "Disclosure": "Terbatas (Guarded): bersedia menyebutkan hal faktual tentang pekerjaan dan kuliahnya, belum menyampaikan perasaan pribadi.",
+        "Ambivalence": "Alasan berubah: ingin pekerjaan lebih baik dan menyelesaikan kuliah yang tertunda. Alasan bertahan: biaya, jadwal kerja bergilir, dan keraguan terhadap kemampuan diri. Kecenderungan awal: dua sisi, ragu.",
+        "Discord": "Tidak tampak pada awal sesi."
+      },
+      "topics": [
+        "Alasan datang dan keadaan sekarang",
+        "Riwayat berhenti kuliah dan dampaknya",
+        "Harapan dan arah perubahan",
+        "Pertimbangan biaya dan waktu",
+        "Dukungan kakak",
+        "Pernah membuka laman pendaftaran",
+        "Rasa malu dan takut gagal lagi"
+      ]
+    },
+    "SS-HEN-01": {
+      "code": "SS-HEN-01",
+      "persona": {
+        "name": "Hendra Saputra (Pak Hendra)",
+        "age": 40,
+        "gender": "Laki-laki",
+        "education": "Lulusan SMK jurusan otomotif; detail riwayat sekolah tidak menjadi fokus skenario.",
+        "occupation": "Pemilik bengkel motor kecil.",
+        "marital_status": "Menikah.",
+        "family_background": "Tinggal bersama istri dan seorang anak laki-laki berusia 8 tahun. Istrinya beberapa kali meminta ia berhenti merokok dan sering mengingatkannya, termasuk di depan orang lain.",
+        "personality": "Mandiri, terbiasa memutuskan sendiri, dan mudah bersikap defensif ketika merasa diatur atau digurui.",
+        "communication_style": "Ringkas dan lugas; kadang bercanda untuk menghindari topik berat; menjawab lebih panjang ketika lawan bicara tidak terdengar menggurui.",
+        "additional_background": "Merokok sejak masa SMK. Rekan kerja di bengkel juga merokok, dan waktu istirahat selama bekerja singkat."
+      },
+      "case": {
+        "main_problem": "Istri Pak Hendra memintanya berhenti merokok, sedangkan ia sendiri belum yakin perlu atau sanggup berubah sekarang.",
+        "history_impact": "Pak Hendra merokok sekitar dua bungkus per hari sejak masa SMK. Ia mengakui rokok makin mahal, bajunya sering bolong terkena bara, dan rasanya tidak seenak dulu. Perdebatan dengan istri membuatnya merasa dinasihati dan dikontrol.",
+        "expectation_change_context": "Harapan awal: belum meminta rencana berhenti; ingin diperlakukan sebagai orang yang memutuskan sendiri. Konteks perubahan perilaku: mengurangi atau menghentikan kebiasaan merokok.",
+        "health_condition": "Tidak diisi karena skenario tidak digunakan untuk diagnosis atau konsultasi medis.",
+        "initial_summary": "Pak Hendra, 40 tahun, pemilik bengkel motor kecil. Ia datang karena istrinya meminta ia berhenti merokok, dan ia belum tentu ingin berubah. Arah latihan: bantu Pak Hendra memperjelas pandangannya tentang kebiasaan merokok dan, bila ia mau, cara mengurangi atau menghentikannya."
+      },
+      "hidden_facts": [
+        {
+          "code": "H1",
+          "short_title": "Pengalaman mencoba berhenti",
+          "fact": "Pak Hendra pernah mencoba berhenti dua sampai tiga hari. Ia menjadi uring-uringan dan memarahi karyawan bengkelnya, lalu kembali merokok.",
+          "min_disclosure_level": "medium"
+        },
+        {
+          "code": "H2",
+          "short_title": "Kekhawatiran saat tidak merokok",
+          "fact": "Ia takut tidak kuat menahan gelisah dan mudah marah jika berhenti, baik di bengkel maupun di rumah. Ia juga tidak mau memakai obat atau permen bantu karena tidak ingin bergantung pada hal lain.",
+          "min_disclosure_level": "medium"
+        },
+        {
+          "code": "H3",
+          "short_title": "Kekhawatiran terhadap napas dan kesehatan",
+          "fact": "Belakangan ia mudah sesak napas ketika mendorong motor atau naik tangga. Ia khawatir itu tanda kesehatannya memburuk, tetapi gengsi mengakuinya pada istrinya.",
+          "min_disclosure_level": "high"
+        }
+      ],
+      "initial_state_doc": {
+        "Emotion": "Kesal dan waspada karena merasa kebiasaannya terus dipermasalahkan oleh istrinya.",
+        "Disclosure": "Terbatas (Guarded): hanya bersedia mengakui kebiasaan merokok secara singkat di permukaan; belum membahas hal pribadi.",
+        "Ambivalence": "Alasan berubah: permintaan istri dan anak, serta rokok yang makin mahal dan kurang dinikmati (belum diungkapkan di awal). Alasan bertahan: rokok menjadi jeda kerja, dan ia tidak mau dipaksa. Kecenderungan awal: mempertahankan keadaan saat ini (sustain talk dominan).",
+        "Discord": "Tidak tampak pada awal sesi."
+      },
+      "topics": [
+        "Alasan datang dan keadaan merokok",
+        "Riwayat dan dampak merokok",
+        "Harapan dan arah perubahan",
+        "Pengalaman mencoba berhenti",
+        "Kekhawatiran saat tidak merokok",
+        "Kekhawatiran terhadap napas dan kesehatan"
+      ]
+    },
+    "SS-RIN-01": {
+      "code": "SS-RIN-01",
+      "persona": {
+        "name": "Rina Kusumawati",
+        "age": 36,
+        "gender": "Perempuan",
+        "education": "Tidak diisi karena tidak relevan dengan skenario.",
+        "occupation": "Karyawan kantor dan ibu.",
+        "marital_status": "Menikah.",
+        "family_background": "Tinggal bersama suami dan seorang anak. Pengasuhan serta jadwal kerja pasangan berpengaruh pada waktu luang.",
+        "personality": "Bertanggung jawab terhadap pekerjaan dan keluarga, tetapi cenderung menyalahkan diri ketika kebiasaan baru tidak bertahan.",
+        "communication_style": "Cukup terbuka mengenai kegiatan sehari-hari, namun ragu ketika membicarakan kegagalan atau penampilan tubuh.",
+        "additional_background": "Lebih menikmati aktivitas santai yang dapat dilakukan bersama keluarga daripada aktivitas yang terasa seperti kewajiban."
+      },
+      "case": {
+        "main_problem": "Bu Rina ingin lebih aktif secara fisik, tetapi kesulitan menjaga kebiasaan berjalan atau olahraga ringan secara rutin.",
+        "history_impact": "Pernah memulai jalan pagi selama beberapa minggu, lalu berhenti saat pekerjaan menumpuk. Ia cepat lelah ketika bermain bersama anak dan merasa kecewa pada diri sendiri.",
+        "expectation_change_context": "Harapan awal: menemukan aktivitas ringan yang sesuai dengan waktu, tenaga, dan kondisi keluarganya tanpa terbebani kewajiban setiap hari. Konteks perubahan perilaku: memulai aktivitas berjalan kaki secara bertahap sesuai ketersediaan waktu.",
+        "health_condition": "Memperoleh anjuran umum untuk lebih banyak bergerak setelah pemeriksaan kesehatan kantor; tidak digunakan untuk menetapkan diagnosis.",
+        "initial_summary": "Bu Rina, 36 tahun, karyawan kantor dan ibu satu anak. Setelah pemeriksaan kesehatan kantor, ia dianjurkan lebih banyak bergerak, dan ia ingin lebih aktif tetapi merasa sulit menjaga kebiasaannya. Arah latihan: bantu Bu Rina memperjelas keinginannya dan, bila ia mau, langkah kecil berjalan kaki yang cocok untuknya."
+      },
+      "hidden_facts": [
+        {
+          "code": "H1",
+          "short_title": "Pengalaman berjalan bersama anak",
+          "fact": "Bu Rina menikmati jalan santai bersama anaknya pada akhir pekan karena bisa mengobrol tanpa terasa seperti kewajiban olahraga, serta ingin menjadi contoh aktif bagi anaknya.",
+          "min_disclosure_level": "medium"
+        },
+        {
+          "code": "H2",
+          "short_title": "Dukungan keluarga dan jadwal pasangan",
+          "fact": "Waktu pagi dan sore terasa padat karena urusan anak, namun suaminya pernah menawarkan menemani atau bergantian menjaga anak bila jadwal kerjanya memungkinkan.",
+          "min_disclosure_level": "medium"
+        },
+        {
+          "code": "H3",
+          "short_title": "Rasa kecewa karena pola mulai lalu berhenti",
+          "fact": "Bu Rina merasa gagal ketika kebiasaan jalan pagi sebelumnya terhenti saat pekerjaan menumpuk, sehingga ragu membuat janji target rutin baru.",
+          "min_disclosure_level": "high"
+        }
+      ],
+      "initial_state_doc": {
+        "Emotion": "Berharap dapat lebih aktif, sekaligus ragu dan lelah karena waktu serta tenaga terbatas setelah bekerja.",
+        "Disclosure": "Sedang (Medium Disclosure): bersedia menceritakan kendala sehari-hari dan pengalaman aktivitas sebelumnya ketika ditanya secara terbuka.",
+        "Ambivalence": "Alasan berubah: ingin tubuh lebih segar dan tidak cepat lelah saat bermain dengan anak. Alasan bertahan: kelelahan sepulang kerja dan takut gagal menjaga konsistensi. Kecenderungan awal: dua sisi berimbang.",
+        "Discord": "Tidak tampak pada awal sesi."
+      },
+      "topics": [
+        "Keluhan dan keinginan lebih aktif",
+        "Riwayat dan dampak",
+        "Harapan dan arah perubahan",
+        "Pengalaman berjalan bersama anak",
+        "Dukungan keluarga dan jadwal pasangan",
+        "Rasa kecewa karena pola mulai lalu berhenti"
+      ]
+    }
+  },
+  "sessions": [
+    {
+      "session_code": "SS-NAD-01-S01",
+      "scenario_code": "SS-NAD-01",
+      "parent_session_code": null,
+      "initial_state": {
+        "emotion_type": "Cemas dan kewalahan karena tenggat kuliah serta kegiatan organisasi bertumpuk.",
+        "emotion_cause": null,
+        "disclosure_level": "guarded",
+        "disclosure_trigger": "Kondisi awal skenario",
+        "reasons_to_change": "ingin beban berkurang agar kuliah tidak keteteran",
+        "reasons_to_maintain": "ingin tetap terlibat dalam kegiatan yang bermakna",
+        "ambivalence_lean": "both",
+        "discord_present": false,
+        "discord_context": null,
+        "discord_response": null
+      },
+      "initial_notes": {
+        "Beban dan rasa kewalahan": "",
+        "Riwayat dan dampak masalah": "",
+        "Harapan dan arah perubahan": "",
+        "Kekhawatiran terhadap penilaian teman": "",
+        "Pengalaman komentar kurang kompak": "",
+        "Pengalaman meminta bantuan desain": "",
+        "Pengalaman bersama orang tua soal tanggung jawab": ""
+      },
+      "turns": [
+        {
+          "turn": 1,
+          "counselor": "Apa yang membuat kamu memutuskan mencari bantuan sekarang?",
+          "client": "Akhir-akhir ini tugas kuliah dan kegiatan datang bersamaan. Saya sering bingung harus mulai dari mana.",
+          "state_after": {
+            "emotion": "Cemas karena tugas kuliah dan kegiatan datang bersamaan.",
+            "disclosure_level": "guarded",
+            "disclosure_text": "Terbatas (Guarded) — klien baru menyampaikan keluhan umum di permukaan.",
+            "ambivalence": "Belum tampak jelas; klien baru menyebutkan kepadatan jadwal.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Beban dan rasa kewalahan": "Tugas kuliah dan kegiatan datang bersamaan sehingga bingung harus mulai dari mana."
+          }
+        },
+        {
+          "turn": 2,
+          "counselor": "Kamu sedang berusaha mengejar banyak hal sekaligus.",
+          "client": "Iya. Minggu ini ada tugas kelompok, rapat, dan bahan publikasi yang harus selesai hampir bersamaan.",
+          "state_after": {
+            "emotion": "Kewalahan karena tenggat tugas dan rapat berdekatan.",
+            "disclosure_level": "guarded",
+            "disclosure_text": "Terbatas (Guarded) — merinci jadwal faktual setelah direfleksikan.",
+            "ambivalence": "Belum tampak jelas.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Riwayat dan dampak masalah": "Tugas kelompok, rapat, dan bahan publikasi harus selesai hampir bersamaan minggu ini."
+          }
+        },
+        {
+          "turn": 3,
+          "counselor": "Dari semua itu, bagian mana yang paling ingin kamu bahas hari ini?",
+          "client": "Mungkin soal tanggung jawab organisasi. Saya tidak ingin langsung keluar, tapi rasanya tidak sanggup terus menerima semuanya.",
+          "state_after": {
+            "emotion": "Kewalahan namun mulai terfokus pada pilihan masalah.",
+            "disclosure_level": "guarded",
+            "disclosure_text": "Terbatas (Guarded) — mulai menyampaikan batas kesanggupan.",
+            "ambivalence": "Alasan berubah (tidak sanggup menerima semua tugas) dan alasan bertahan (tidak ingin keluar) mulai muncul bersamaan.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Harapan dan arah perubahan": "Memilih membahas tanggung jawab organisasi; tidak ingin langsung keluar tetapi tidak sanggup menerima semuanya."
+          }
+        },
+        {
+          "turn": 4,
+          "counselor": "Kegiatan itu tetap penting buatmu, tetapi cara membagi tanggung jawabnya mulai terasa berat.",
+          "client": "Betul. Saya suka teman-temannya dan dapat pengalaman, tapi kuliah saya jadi keteteran.",
+          "state_after": {
+            "emotion": "Cemas karena kuliah mulai terdampak.",
+            "disclosure_level": "guarded",
+            "disclosure_text": "Terbatas (Guarded).",
+            "ambivalence": "Alasan bertahan (menyukai teman dan mendapat pengalaman) serta alasan berubah (kuliah keteteran) sama-sama menonjol.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Riwayat dan dampak masalah": "Tugas kelompok, rapat, dan bahan publikasi harus selesai hampir bersamaan minggu ini. Kuliah mulai keteteran akibat kepadatan kegiatan.",
+            "Harapan dan arah perubahan": "Memilih membahas tanggung jawab organisasi; tidak ingin langsung keluar tetapi tidak sanggup menerima semuanya. Kegiatan organisasi memberi pertemanan dan pengalaman yang ingin dipertahankan."
+          }
+        },
+        {
+          "turn": 5,
+          "counselor": "Apa yang membuatmu tetap ingin terlibat di kegiatan itu?",
+          "client": "Saya merasa dibutuhkan. Kalau saya tidak ikut, takutnya teman-teman kecewa atau menganggap saya tidak serius.",
+          "state_after": {
+            "emotion": "Cemas karena takut mengecewakan teman.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure) — meningkat dari Terbatas setelah refleksi empatik pada K04 dan pertanyaan terbuka; klien membuka kekhawatiran pribadinya.",
+            "ambivalence": "Alasan bertahan diperkuat oleh kekhawatiran mengecewakan teman.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Kekhawatiran terhadap penilaian teman": "Merasa dibutuhkan; takut teman kecewa atau menganggapnya tidak serius jika tidak ikut."
+          }
+        },
+        {
+          "turn": 6,
+          "counselor": "Kamu sebaiknya keluar dari salah satu kepanitiaan supaya bebanmu cepat berkurang.",
+          "client": "Saya belum bilang ingin keluar. Rasanya yang saya maksud belum dipahami.",
+          "state_after": {
+            "emotion": "Kecewa karena merasa diarahkan secara sepihak.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure) — tidak turun; tetap Sedang, tetapi klien menjawab singkat dan tidak menambah informasi baru.",
+            "ambivalence": "Tertahan pada penolakan untuk keluar dari kepanitiaan.",
+            "discord_present": true,
+            "discord_text": "Tampak — dipicu saran sepihak konselor; klien menyatakan maksudnya belum dipahami."
+          },
+          "notes_after": {
+            "Harapan dan arah perubahan": "Memilih membahas tanggung jawab organisasi; tidak ingin langsung keluar tetapi tidak sanggup menerima semuanya. Kegiatan organisasi memberi pertemanan dan pengalaman yang ingin dipertahankan. Menegaskan belum ingin keluar."
+          }
+        },
+        {
+          "turn": 7,
+          "counselor": "Maaf, saya terlalu cepat memberi saran. Kamu ingin tetap terlibat, tetapi tidak ingin semua tanggung jawab mengganggu kuliah. Keputusan tetap ada padamu.",
+          "client": "Iya, itu lebih mendekati. Saya ingin mencari cara yang tidak langsung membuat saya harus berhenti.",
+          "state_after": {
+            "emotion": "Lebih tenang setelah konselor meminta maaf dan mengakui pilihannya.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure).",
+            "ambivalence": "Mulai condong mengeksplorasi cara membagi beban tanpa berhenti.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak (mereda setelah konselor memperbaiki hubungan)."
+          },
+          "notes_after": {
+            "Harapan dan arah perubahan": "Memilih membahas tanggung jawab organisasi; tidak ingin langsung keluar tetapi tidak sanggup menerima semuanya. Kegiatan organisasi memberi pertemanan dan pengalaman yang ingin dipertahankan. Ingin mencari cara membagi beban tanpa harus berhenti."
+          }
+        },
+        {
+          "turn": 8,
+          "counselor": "Kamu berusaha menjaga tanggung jawab sekaligus mulai mempertimbangkan batas kemampuanmu.",
+          "client": "Iya. Saya juga pernah minta bantuan untuk desain acara. Ternyata teman saya mau membantu.",
+          "state_after": {
+            "emotion": "Sedikit lebih lega.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure).",
+            "ambivalence": "Mulai condong mendukung perubahan dengan mengingat pengalaman positif meminta bantuan.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Pengalaman meminta bantuan desain": "Pernah meminta bantuan desain pada acara sebelumnya dan teman bersedia membantu."
+          }
+        },
+        {
+          "turn": 9,
+          "counselor": "Pengalaman itu menunjukkan bahwa meminta bantuan tidak selalu membuat orang kecewa.",
+          "client": "Iya, tapi waktu itu tugasnya jelas. Kalau sekarang saya takut dianggap tidak dapat diandalkan.",
+          "state_after": {
+            "emotion": "Cemas terkait penilaian teman pada situasi sekarang.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure).",
+            "ambivalence": "Dua sisi tampak bersama (mengakui pengalaman positif, tetapi menolak kesimpulan konselor karena masih takut dianggap tidak dapat diandalkan).",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Kekhawatiran terhadap penilaian teman": "Merasa dibutuhkan; takut teman kecewa atau menganggapnya tidak serius jika tidak ikut. Takut dianggap tidak dapat diandalkan jika meminta bantuan pada situasi sekarang.",
+            "Pengalaman meminta bantuan desain": "Pernah meminta bantuan desain pada acara sebelumnya dan teman bersedia membantu. Penerapannya pada situasi sekarang masih diragukan."
+          }
+        },
+        {
+          "turn": 10,
+          "counselor": "Apa yang terasa paling penting untuk kamu bawa dari percakapan ini?",
+          "client": "Mungkin saya tidak harus langsung keluar. Saya ingin memikirkan tugas mana yang bisa dibagi, tapi belum siap bicara dengan koordinator.",
+          "state_after": {
+            "emotion": "Cemas, tetapi lebih terarah.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure).",
+            "ambivalence": "Condong mengeksplorasi perubahan (memikirkan tugas yang bisa dibagi), namun belum ada komitmen tindakan berbicara dengan koordinator.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Harapan dan arah perubahan": "Memilih membahas tanggung jawab organisasi; tidak ingin langsung keluar tetapi tidak sanggup menerima semuanya. Kegiatan organisasi memberi pertemanan dan pengalaman yang ingin dipertahankan. Ingin mencari cara membagi beban tanpa harus berhenti. Mempertimbangkan tugas yang bisa dibagi; belum siap berbicara dengan koordinator."
+          }
+        }
+      ],
+      "final_state_doc": {
+        "emotion": "Cemas, tetapi lebih terarah setelah mempertimbangkan bahwa beban mungkin dapat dibagi tanpa harus keluar.",
+        "disclosure_level": "medium",
+        "ambivalence": "Dua sisi, mulai condong mengeksplorasi pembagian tugas; belum ada komitmen tindakan untuk berbicara dengan koordinator.",
+        "discord_present": false
+      }
+    },
+    {
+      "session_code": "SS-SAR-01-S01",
+      "scenario_code": "SS-SAR-01",
+      "parent_session_code": null,
+      "initial_state": {
+        "emotion_type": "Ragu dan sedikit canggung; ingin membicarakan kuliah, tetapi belum yakin hal itu realistis.",
+        "emotion_cause": null,
+        "disclosure_level": "guarded",
+        "disclosure_trigger": "Kondisi awal skenario",
+        "reasons_to_change": "ingin pekerjaan lebih baik dan menyelesaikan kuliah yang tertunda",
+        "reasons_to_maintain": "biaya, jadwal kerja bergilir, dan keraguan terhadap kemampuan diri",
+        "ambivalence_lean": "both",
+        "discord_present": false,
+        "discord_context": null,
+        "discord_response": null
+      },
+      "initial_notes": {
+        "Alasan datang dan keadaan sekarang": "",
+        "Riwayat berhenti kuliah dan dampaknya": "",
+        "Harapan dan arah perubahan": "",
+        "Pertimbangan biaya dan waktu": "",
+        "Dukungan kakak": "",
+        "Pernah membuka laman pendaftaran": "",
+        "Rasa malu dan takut gagal lagi": ""
+      },
+      "turns": [
+        {
+          "turn": 1,
+          "counselor": "Apa yang membuat kamu ingin membicarakan soal kuliah hari ini?",
+          "client": "Belakangan ini saya sering kepikiran lagi soal kuliah. Dulu saya berhenti di semester lima, sekarang saya kerja di toko.",
+          "state_after": {
+            "emotion": "Ragu dan sedikit canggung.",
+            "disclosure_level": "guarded",
+            "disclosure_text": "Terbatas (Guarded) — klien baru menyebutkan hal faktual tentang kuliah dan pekerjaannya.",
+            "ambivalence": "Belum tampak jelas; klien baru menyebut bahwa ia kembali memikirkan kuliah.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Alasan datang dan keadaan sekarang": "Belakangan kembali memikirkan kuliah dan sekarang bekerja di toko.",
+            "Riwayat berhenti kuliah dan dampaknya": "Dulu berhenti kuliah di semester lima."
+          }
+        },
+        {
+          "turn": 2,
+          "counselor": "Kamu sedang memikirkan kembali kuliah yang dulu terhenti.",
+          "client": "Iya. Kerjaan saya begini-begini saja, sudah beberapa tahun tidak ada perubahan. Rasanya jalan di tempat.",
+          "state_after": {
+            "emotion": "Jenuh dan merasa tidak berkembang.",
+            "disclosure_level": "guarded",
+            "disclosure_text": "Terbatas (Guarded) — merinci keadaan pekerjaan setelah direfleksikan, masih di tingkat permukaan.",
+            "ambivalence": "Alasan berubah mulai tampak (pekerjaan terasa jalan di tempat).",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Riwayat berhenti kuliah dan dampaknya": "Berhenti kuliah di semester lima; pekerjaan beberapa tahun terakhir terasa tidak berubah dan jalan di tempat."
+          }
+        },
+        {
+          "turn": 3,
+          "counselor": "Pekerjaanmu terasa tidak ke mana-mana, dan itu membuat kuliah muncul lagi sebagai kemungkinan.",
+          "client": "Iya. Kalau selesai kuliah, mungkin saya bisa dapat posisi yang lebih baik dan tidak merasa menggantung begini. Tapi saya juga ragu bisa membagi waktu dengan jadwal kerja shift.",
+          "state_after": {
+            "emotion": "Berharap, tetapi ragu.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure) — meningkat dari Terbatas setelah refleksi yang menangkap makna pekerjaannya; klien menyampaikan harapan dan keraguan pribadi yang spesifik.",
+            "ambivalence": "Dua sisi tampak bersama: harapan posisi lebih baik (alasan berubah) dan keraguan membagi waktu karena shift (alasan bertahan).",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Harapan dan arah perubahan": "Berharap mendapat posisi lebih baik dan tidak merasa menggantung; ragu membagi waktu dengan jadwal kerja shift."
+          }
+        },
+        {
+          "turn": 4,
+          "counselor": "Dari semua yang kamu ceritakan, bagian mana yang paling ingin kamu bahas lebih dulu?",
+          "client": "Mungkin soal biaya dulu. Saya sudah coba hitung kira-kira biaya kelas karyawan, tapi tabungan saya belum cukup. Saya juga takut gaji berkurang kalau jam kerja saya dikurangi.",
+          "state_after": {
+            "emotion": "Cemas soal biaya.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure).",
+            "ambivalence": "Alasan bertahan menguat (biaya dan kemungkinan penghasilan berkurang).",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Pertimbangan biaya dan waktu": "Sudah menghitung kasar biaya kelas karyawan dan tabungan belum cukup; khawatir penghasilan berkurang jika jam kerja dikurangi."
+          }
+        },
+        {
+          "turn": 5,
+          "counselor": "Kamu sebaiknya mulai menabung dulu dan mendaftar tahun depan saja.",
+          "client": "Saya belum bilang mau menunda. Rasanya maksud saya belum dipahami.",
+          "state_after": {
+            "emotion": "Kecewa karena merasa diarahkan.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure) — tidak turun; tetap Sedang, tetapi klien menjawab singkat dan tidak menambah informasi baru.",
+            "ambivalence": "Tertahan: klien menolak arahan untuk menunda.",
+            "discord_present": true,
+            "discord_text": "Tampak — dipicu saran sepihak konselor; klien menyatakan maksudnya belum dipahami."
+          },
+          "notes_after": {
+            "Harapan dan arah perubahan": "Berharap posisi lebih baik dan tidak merasa menggantung; ragu membagi waktu dengan jadwal shift. Menegaskan belum berniat menunda pendaftaran."
+          }
+        },
+        {
+          "turn": 6,
+          "counselor": "Maaf, saya terlalu cepat memberi saran. Kamu ingin tahu dulu apakah kuliah mungkin dijalani, dengan biaya yang perlu dihitung baik-baik. Kamu yang menentukan arahnya.",
+          "client": "Iya, itu lebih tepat. Saya ingin tahu dulu apakah bisa, bukan langsung menunda.",
+          "state_after": {
+            "emotion": "Lebih tenang setelah konselor meminta maaf dan mengakui pilihannya.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure).",
+            "ambivalence": "Condong memeriksa kemungkinan kuliah lagi; belum menunda dan belum memutuskan.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak (mereda setelah konselor memperbaiki hubungan)."
+          },
+          "notes_after": {
+            "Harapan dan arah perubahan": "Berharap posisi lebih baik dan tidak merasa menggantung; ragu membagi waktu dengan jadwal shift. Belum berniat menunda; ingin tahu dulu apakah kuliah mungkin dijalani."
+          }
+        },
+        {
+          "turn": 7,
+          "counselor": "Kamu sudah serius memikirkan kuliah sampai menghitung biayanya sendiri.",
+          "client": "Sebenarnya saya pernah buka laman pendaftaran kampus. Tapi tidak jadi saya lanjutkan, saya tutup lagi.",
+          "state_after": {
+            "emotion": "Sedikit lega, tetapi masih ragu.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure).",
+            "ambivalence": "Condong mencoba, tetapi pernah berhenti sebelum menyelesaikan langkahnya.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Pernah membuka laman pendaftaran": "Pernah membuka laman pendaftaran kampus, tetapi menutupnya sebelum menyelesaikan."
+          }
+        },
+        {
+          "turn": 8,
+          "counselor": "Kamu sempat melangkah sampai membuka laman itu, lalu ada hal yang membuatmu berhenti.",
+          "client": "Iya. Waktu itu saya bingung harus mulai dari mana, lalu kepikiran kerjaan. Tapi kalau bisa selesai, saya ingin sekali membuktikan ke diri saya sendiri bahwa saya bisa.",
+          "state_after": {
+            "emotion": "Berharap dan sedikit bersemangat.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure).",
+            "ambivalence": "Alasan berubah menguat (ingin membuktikan kepada diri sendiri); hambatan awal (bingung memulai) tetap tercatat.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Harapan dan arah perubahan": "Berharap posisi lebih baik dan tidak merasa menggantung; ragu membagi waktu dengan jadwal shift. Belum berniat menunda; ingin tahu dulu apakah kuliah mungkin dijalani. Ingin membuktikan kepada diri sendiri bahwa ia bisa.",
+            "Pernah membuka laman pendaftaran": "Pernah membuka laman pendaftaran kampus, tetapi menutupnya karena bingung harus mulai dari mana."
+          }
+        },
+        {
+          "turn": 9,
+          "counselor": "Kalau suatu hari kamu berhasil menyelesaikan kuliah, apa yang paling kamu harapkan terjadi?",
+          "client": "Saya akan merasa bangga, dan mungkin tidak lagi merasa tertinggal dari teman-teman yang sudah lulus. Pekerjaan juga bisa lebih baik.",
+          "state_after": {
+            "emotion": "Berharap dan bangga membayangkannya.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure).",
+            "ambivalence": "Alasan berubah menguat: rasa bangga, tidak merasa tertinggal, dan pekerjaan lebih baik.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Harapan dan arah perubahan": "Berharap posisi lebih baik dan tidak merasa menggantung; ragu membagi waktu dengan jadwal shift. Belum berniat menunda; ingin tahu dulu apakah kuliah mungkin dijalani. Ingin membuktikan kepada diri sendiri bahwa ia bisa. Membayangkan rasa bangga, tidak merasa tertinggal, dan pekerjaan lebih baik."
+          }
+        },
+        {
+          "turn": 10,
+          "counselor": "Kamu ingin merasa bangga pada dirimu sendiri dan tidak lagi merasa tertinggal. Itu terdengar penting bagimu.",
+          "client": "Iya. Saya belum tahu langkah pertamanya apa, tapi saya mau memikirkannya lagi, mungkin sambil cari tahu biaya kelas karyawan.",
+          "state_after": {
+            "emotion": "Cemas, tetapi lebih terarah.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure).",
+            "ambivalence": "Condong mencari tahu lebih jauh; belum ada komitmen mendaftar.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Alasan datang dan keadaan sekarang": "Belakangan kembali memikirkan kuliah dan sekarang bekerja di toko; ingin memikirkan langkah pertama sambil mencari tahu biaya kelas karyawan."
+          }
+        }
+      ],
+      "final_state_doc": {
+        "emotion": "Cemas, tetapi lebih terarah setelah memikirkan bahwa ia ingin tahu dulu apakah kuliah mungkin dijalani.",
+        "disclosure_level": "medium",
+        "ambivalence": "Dua sisi, condong mencari tahu biaya kelas karyawan; belum ada komitmen mendaftar.",
+        "discord_present": false
+      }
+    },
+    {
+      "session_code": "SS-SAR-01-S02",
+      "scenario_code": "SS-SAR-01",
+      "parent_session_code": "SS-SAR-01-S01",
+      "initial_state": {
+        "emotion_type": "Cemas, tetapi lebih terarah setelah memikirkan bahwa ia ingin tahu dulu apakah kuliah mungkin dijalani.",
+        "emotion_cause": null,
+        "disclosure_level": "medium",
+        "disclosure_trigger": "Tingkat akhir sesi sebelumnya",
+        "reasons_to_change": null,
+        "reasons_to_maintain": null,
+        "ambivalence_lean": "both",
+        "discord_present": false,
+        "discord_context": null,
+        "discord_response": null
+      },
+      "initial_notes": {
+        "Alasan datang dan keadaan sekarang": "Belakangan kembali memikirkan kuliah dan sekarang bekerja di toko; ingin memikirkan langkah pertama sambil mencari tahu biaya kelas karyawan.",
+        "Riwayat berhenti kuliah dan dampaknya": "Berhenti kuliah di semester lima; pekerjaan beberapa tahun terakhir terasa tidak berubah dan jalan di tempat.",
+        "Harapan dan arah perubahan": "Berharap posisi lebih baik dan tidak merasa menggantung; ragu membagi waktu dengan jadwal shift. Belum berniat menunda; ingin tahu dulu apakah kuliah mungkin dijalani. Ingin membuktikan kepada diri sendiri bahwa ia bisa. Membayangkan rasa bangga, tidak merasa tertinggal, dan pekerjaan lebih baik.",
+        "Pertimbangan biaya dan waktu": "Sudah menghitung kasar biaya kelas karyawan dan tabungan belum cukup; khawatir penghasilan berkurang jika jam kerja dikurangi.",
+        "Dukungan kakak": "",
+        "Pernah membuka laman pendaftaran": "Pernah membuka laman pendaftaran kampus, tetapi menutupnya karena bingung harus mulai dari mana.",
+        "Rasa malu dan takut gagal lagi": ""
+      },
+      "turns": [
+        {
+          "turn": 1,
+          "counselor": "Terakhir kali kita membahas biaya dan laman pendaftaran yang sempat kamu tutup. Bagaimana kabarmu sejak itu?",
+          "client": "Lumayan. Saya masih kepikiran soal kuliah, tapi minggu ini belum sempat mengurus apa-apa.",
+          "state_after": {
+            "emotion": "Masih ragu, tetapi tidak setegang sebelumnya.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure) — tingkat akhir sesi 1 dibawa ke sesi ini.",
+            "ambivalence": "Dua sisi; masih memikirkan kuliah, belum ada langkah baru.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Alasan datang dan keadaan sekarang": "Belakangan kembali memikirkan kuliah dan ingin mencari tahu biaya kelas karyawan; minggu ini belum sempat mengurus apa pun."
+          }
+        },
+        {
+          "turn": 2,
+          "counselor": "Kamu masih memikirkannya, tetapi minggu ini belum ada langkah yang sempat kamu lakukan.",
+          "client": "Iya. Kakak saya juga sempat menanyakannya. Dia sudah lulus dan sekarang kerja di kantor. Katanya dia mau bantu mencarikan informasi kelas karyawan, tapi saya belum jawab.",
+          "state_after": {
+            "emotion": "Bimbang, tetapi tersentuh oleh tawaran kakak.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure).",
+            "ambivalence": "Dukungan kakak muncul sebagai alasan mendukung perubahan; belum ditanggapi.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Dukungan kakak": "Kakak sudah lulus dan bekerja di kantor; menawarkan mencarikan informasi kelas karyawan, tetapi Sari belum menjawab."
+          }
+        },
+        {
+          "turn": 3,
+          "counselor": "Kalau kakakmu membantu mencarikan informasi itu, apa yang mungkin berbeda buatmu?",
+          "client": "Mungkin saya jadi punya teman bicara dan tidak merasa sendirian memikirkannya. Cuma, saya masih agak ragu.",
+          "state_after": {
+            "emotion": "Sedikit lega, namun masih ragu.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure).",
+            "ambivalence": "Alasan berubah menguat (ada pendamping); keraguan belum dijelaskan.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Dukungan kakak": "Kakak sudah lulus dan bekerja di kantor; menawarkan mencarikan informasi kelas karyawan, tetapi Sari belum menjawab. Sari membayangkan punya teman bicara dan tidak sendirian memikirkannya."
+          }
+        },
+        {
+          "turn": 4,
+          "counselor": "Ada bagian dari dirimu yang ingin ditemani memikirkannya, tetapi ada keraguan yang belum sempat kamu ceritakan.",
+          "client": "Iya. Sebenarnya saya malu. Dulu saya berhenti di tengah jalan. Saya takut kalau mencoba lagi nanti gagal lagi, lalu dibandingkan dengan teman-teman yang sudah lulus.",
+          "state_after": {
+            "emotion": "Malu dan takut gagal, tetapi mulai berani mengatakannya.",
+            "disclosure_level": "high",
+            "disclosure_text": "Tinggi (High Disclosure) — meningkat dari Sedang setelah refleksi yang menyebut keraguan yang belum diceritakan; klien menyampaikan hal sensitif yang bermakna secara emosional.",
+            "ambivalence": "Alasan bertahan terungkap lebih dalam (takut gagal lagi dan dibandingkan), berdampingan dengan keinginan mencoba.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Rasa malu dan takut gagal lagi": "Malu karena dulu berhenti di tengah jalan; takut gagal lagi dan dibandingkan dengan teman-teman yang sudah lulus."
+          }
+        },
+        {
+          "turn": 5,
+          "counselor": "Terima kasih sudah menceritakannya. Dengan semua keraguan itu, kamu tetap datang dan membicarakannya. Itu butuh keberanian.",
+          "client": "Terima kasih. Rasanya sedikit lega bisa mengatakannya.",
+          "state_after": {
+            "emotion": "Lebih lega.",
+            "disclosure_level": "high",
+            "disclosure_text": "Tinggi (High Disclosure).",
+            "ambivalence": "Keraguan sudah diutarakan; belum ada perubahan arah.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {}
+        },
+        {
+          "turn": 6,
+          "counselor": "Kamu takut gagal lagi, tetapi di sisi lain kamu masih ingin membuktikan bahwa kamu bisa menyelesaikannya.",
+          "client": "Iya, itu yang saya rasakan. Kalau ada yang mendampingi, mungkin saya bisa mencoba pelan-pelan.",
+          "state_after": {
+            "emotion": "Lebih percaya diri.",
+            "disclosure_level": "high",
+            "disclosure_text": "Tinggi (High Disclosure).",
+            "ambivalence": "Condong mencoba dengan pendampingan dan langkah pelan.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Harapan dan arah perubahan": "Berharap posisi lebih baik dan tidak merasa menggantung; ragu membagi waktu dengan jadwal shift. Belum berniat menunda; ingin tahu dulu apakah kuliah mungkin dijalani. Ingin membuktikan kepada diri sendiri bahwa ia bisa. Membayangkan rasa bangga, tidak merasa tertinggal, dan pekerjaan lebih baik. Mau mencoba pelan-pelan jika ada pendamping."
+          }
+        },
+        {
+          "turn": 7,
+          "counselor": "Kalau mulai dari yang paling ringan, apa yang mungkin kamu lakukan lebih dulu?",
+          "client": "Mungkin saya tanya kakak soal kelas karyawan dulu, belum langsung daftar.",
+          "state_after": {
+            "emotion": "Lebih terarah.",
+            "disclosure_level": "high",
+            "disclosure_text": "Tinggi (High Disclosure).",
+            "ambivalence": "Condong mencoba langkah kecil (bertanya kepada kakak); belum siap mendaftar.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Harapan dan arah perubahan": "Berharap posisi lebih baik dan tidak merasa menggantung; ragu membagi waktu dengan jadwal shift. Belum berniat menunda; ingin tahu dulu apakah kuliah mungkin dijalani. Ingin membuktikan kepada diri sendiri bahwa ia bisa. Membayangkan rasa bangga, tidak merasa tertinggal, dan pekerjaan lebih baik. Mau mencoba pelan-pelan jika ada pendamping. Mempertimbangkan bertanya ke kakak lebih dulu, belum mendaftar."
+          }
+        },
+        {
+          "turn": 8,
+          "counselor": "Boleh saya berbagi satu hal yang biasanya membantu orang yang ingin kuliah lagi sambil bekerja?",
+          "client": "Boleh, silakan.",
+          "state_after": {
+            "emotion": "Terbuka.",
+            "disclosure_level": "high",
+            "disclosure_text": "Tinggi (High Disclosure).",
+            "ambivalence": "Tidak berubah.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {}
+        },
+        {
+          "turn": 9,
+          "counselor": "Beberapa orang memulai dengan menanyakan jadwal kelas dan cicilan biaya ke bagian akademik sebelum memutuskan apa pun, supaya gambarannya lebih jelas. Kalau cocok, kamu bisa menyesuaikannya dengan keadaanmu; pilihannya tetap ada padamu.",
+          "client": "Oke, itu masuk akal. Saya bisa sekalian minta kakak menemani saya melihat jadwalnya.",
+          "state_after": {
+            "emotion": "Lebih tenang dan siap.",
+            "disclosure_level": "high",
+            "disclosure_text": "Tinggi (High Disclosure).",
+            "ambivalence": "Condong mencoba langkah kecil dengan pendampingan kakak.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Harapan dan arah perubahan": "Berharap posisi lebih baik dan tidak merasa menggantung; ragu membagi waktu dengan jadwal shift. Belum berniat menunda; ingin tahu dulu apakah kuliah mungkin dijalani. Ingin membuktikan kepada diri sendiri bahwa ia bisa. Membayangkan rasa bangga, tidak merasa tertinggal, dan pekerjaan lebih baik. Mau mencoba pelan-pelan jika ada pendamping. Mempertimbangkan bertanya ke kakak lebih dulu, belum mendaftar. Tertarik menanyakan jadwal dan cicilan ke bagian akademik bersama kakak."
+          }
+        },
+        {
+          "turn": 10,
+          "counselor": "Kapan kira-kira kamu akan membicarakannya dengan kakakmu?",
+          "client": "Mungkin akhir pekan ini. Saya akan coba kirim pesan dulu ke kakak.",
+          "state_after": {
+            "emotion": "Tenang dan lebih terarah.",
+            "disclosure_level": "high",
+            "disclosure_text": "Tinggi (High Disclosure).",
+            "ambivalence": "Condong mencoba langkah awal yang kecil; belum berkomitmen mendaftar.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Harapan dan arah perubahan": "Berharap posisi lebih baik dan tidak merasa menggantung; ragu membagi waktu dengan jadwal shift. Belum berniat menunda; ingin tahu dulu apakah kuliah mungkin dijalani. Ingin membuktikan kepada diri sendiri bahwa ia bisa. Membayangkan rasa bangga, tidak merasa tertinggal, dan pekerjaan lebih baik. Mau mencoba pelan-pelan jika ada pendamping. Mempertimbangkan bertanya ke kakak lebih dulu, belum mendaftar. Tertarik menanyakan jadwal dan cicilan ke bagian akademik bersama kakak. Berencana mengirim pesan ke kakak akhir pekan ini; belum berkomitmen mendaftar."
+          }
+        }
+      ],
+      "final_state_doc": {
+        "emotion": "Tenang dan lebih terarah; masih ada rasa takut gagal, tetapi sudah diutarakan.",
+        "disclosure_level": "high",
+        "ambivalence": "Dua sisi, condong mencoba langkah kecil (mengirim pesan kepada kakak); belum berkomitmen mendaftar.",
+        "discord_present": false
+      }
+    },
+    {
+      "session_code": "SS-HEN-01-S01",
+      "scenario_code": "SS-HEN-01",
+      "parent_session_code": null,
+      "initial_state": {
+        "emotion_type": "Kesal dan waspada karena merasa kebiasaannya terus dipermasalahkan oleh istrinya.",
+        "emotion_cause": null,
+        "disclosure_level": "guarded",
+        "disclosure_trigger": "Kondisi awal skenario",
+        "reasons_to_change": "permintaan istri dan anak, serta rokok yang makin mahal dan kurang dinikmati (belum diungkapkan di awal)",
+        "reasons_to_maintain": "rokok menjadi jeda kerja, dan ia tidak mau dipaksa",
+        "ambivalence_lean": "toward_status_quo",
+        "discord_present": false,
+        "discord_context": null,
+        "discord_response": null
+      },
+      "initial_notes": {
+        "Alasan datang dan keadaan merokok": "",
+        "Riwayat dan dampak merokok": "",
+        "Harapan dan arah perubahan": "",
+        "Pengalaman mencoba berhenti": "",
+        "Kekhawatiran saat tidak merokok": "",
+        "Kekhawatiran terhadap napas dan kesehatan": ""
+      },
+      "turns": [
+        {
+          "turn": 1,
+          "counselor": "Apa yang membawa Bapak datang ke sini hari ini?",
+          "client": "Istri saya yang suruh. Katanya saya harus berhenti merokok.",
+          "state_after": {
+            "emotion": "Kesal.",
+            "disclosure_level": "guarded",
+            "disclosure_text": "Terbatas (Guarded) — klien menjawab singkat dan hanya menyebutkan alasan datang.",
+            "ambivalence": "Belum jelas; klien baru menyebut permintaan istri dan condong mempertahankan keadaan.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Alasan datang dan keadaan merokok": "Datang karena istri memintanya berhenti merokok."
+          }
+        },
+        {
+          "turn": 2,
+          "counselor": "Istri Bapak yang meminta Bapak berhenti merokok.",
+          "client": "Ya. Sudah berkali-kali dia bilang. Padahal saya yang tahu badan saya sendiri.",
+          "state_after": {
+            "emotion": "Kesal dan defensif.",
+            "disclosure_level": "guarded",
+            "disclosure_text": "Terbatas (Guarded) — masih singkat; klien menyampaikan penolakan terhadap desakan istri.",
+            "ambivalence": "Sustain talk tampak (merasa paling tahu keadaannya); belum ada alasan berubah yang disebut.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Alasan datang dan keadaan merokok": "Istri sudah berkali-kali memintanya berhenti merokok; ia merasa dirinya yang paling tahu keadaan badannya."
+          }
+        },
+        {
+          "turn": 3,
+          "counselor": "Bapak merasa paling tahu apa yang cocok untuk diri Bapak, dan terus diingatkan membuat Bapak kesal.",
+          "client": "Iya. Lagi pula rokok itu satu-satunya waktu saya bisa duduk sebentar di bengkel. Kalau tidak ada, rasanya tidak ada jeda.",
+          "state_after": {
+            "emotion": "Kesal, tetapi mulai bercerita.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure) — meningkat dari Terbatas setelah refleksi yang menangkap perasaan dan maksudnya; klien menyampaikan fungsi rokok bagi dirinya secara spesifik.",
+            "ambivalence": "Sustain talk: rokok sebagai satu-satunya jeda kerja.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Riwayat dan dampak merokok": "Merokok menjadi satu-satunya jeda duduk sebentar di bengkel."
+          }
+        },
+        {
+          "turn": 4,
+          "counselor": "Tapi Bapak tahu kan rokok itu merusak kesehatan, dan keluarga Bapak bergantung pada Bapak. Sebaiknya Bapak mulai kurangi dari sekarang.",
+          "client": "Nah, kan. Sama saja seperti istri saya. Saya ke sini bukan untuk diceramahi.",
+          "state_after": {
+            "emotion": "Kesal dan merasa digurui.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure) — tidak turun; tetap Sedang, tetapi klien menjawab singkat dan tidak menambah informasi baru.",
+            "ambivalence": "Tertahan: klien menolak arahan untuk mengurangi rokok.",
+            "discord_present": true,
+            "discord_text": "Tampak — dipicu nasihat konselor tanpa izin; klien menyamakannya dengan desakan istri."
+          },
+          "notes_after": {
+            "Harapan dan arah perubahan": "Tidak ingin dinasihati; datang bukan untuk diceramahi."
+          }
+        },
+        {
+          "turn": 5,
+          "counselor": "Maaf, tadi saya langsung menasihati. Bapak sudah sering mendengar itu di rumah, dan Bapak ingin bisa memutuskan sendiri apa yang cocok untuk diri Bapak. Itu hak Bapak.",
+          "client": "Ya, begitu. Kalau diatur-atur, saya malah malas.",
+          "state_after": {
+            "emotion": "Lebih tenang.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure).",
+            "ambivalence": "Masih mempertahankan keadaan, tetapi tidak lagi menolak membahas.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak (mereda setelah konselor meminta maaf dan menegaskan pilihan klien)."
+          },
+          "notes_after": {
+            "Harapan dan arah perubahan": "Tidak ingin dinasihati; kalau diatur-atur justru malas."
+          }
+        },
+        {
+          "turn": 6,
+          "counselor": "Akhir-akhir ini, apa yang menurut Bapak mulai kurang enak dari merokok?",
+          "client": "Ya... rokok sekarang mahal. Baju saya juga sering bolong kena bara. Rasanya juga tidak seenak dulu.",
+          "state_after": {
+            "emotion": "Lebih santai dan mulai mengakui.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure).",
+            "ambivalence": "Alasan berubah mulai tampak (biaya, baju bolong, rasa kurang enak) berdampingan dengan alasan bertahan (jeda kerja).",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Riwayat dan dampak merokok": "Merokok menjadi satu-satunya jeda duduk sebentar di bengkel. Rokok mahal, baju sering bolong terkena bara, dan rasanya tidak seenak dulu."
+          }
+        },
+        {
+          "turn": 7,
+          "counselor": "Rokok itu jadi jeda yang Bapak butuhkan di bengkel, tetapi harganya makin mahal dan rasanya tidak seenak dulu.",
+          "client": "Iya, begitu. Pernah juga saya coba berhenti. Cuma dua tiga hari, tapi saya uring-uringan dan anak buah di bengkel jadi kena marah.",
+          "state_after": {
+            "emotion": "Kesal pada diri sendiri mengingat pengalaman itu.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure).",
+            "ambivalence": "Dua sisi tampak: pernah mencoba berubah, tetapi pengalaman putus rokok membuatnya ragu.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Pengalaman mencoba berhenti": "Pernah mencoba berhenti dua sampai tiga hari, tetapi uring-uringan dan memarahi karyawan bengkel, lalu kembali merokok."
+          }
+        },
+        {
+          "turn": 8,
+          "counselor": "Bapak sudah pernah mencoba, dan itu menunjukkan Bapak sungguh-sungguh memikirkannya.",
+          "client": "Ya, saya bukan tidak mau. Cuma takut tidak kuat lagi. Takut ngamuk lagi di bengkel dan di rumah.",
+          "state_after": {
+            "emotion": "Cemas terhadap kemampuan menahan diri.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure).",
+            "ambivalence": "Keinginan berubah (“bukan tidak mau”) berdampingan dengan keraguan terhadap kemampuan.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Kekhawatiran saat tidak merokok": "Takut tidak kuat menahan gelisah dan mudah marah jika berhenti, baik di bengkel maupun di rumah."
+          }
+        },
+        {
+          "turn": 9,
+          "counselor": "Kalau suatu hari Bapak mencobanya lagi, apa yang kira-kira akan membuat Bapak merasa lebih mampu?",
+          "client": "Mungkin kalau tangan saya ada yang dikerjakan. Tapi saya belum tahu juga.",
+          "state_after": {
+            "emotion": "Mulai berpikir, masih ragu.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure).",
+            "ambivalence": "Muncul gagasan sendiri (menyibukkan tangan), masih ragu.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Harapan dan arah perubahan": "Tidak ingin dinasihati; kalau diatur-atur justru malas. Punya gagasan awal: menyibukkan tangan agar lebih mampu menahan diri."
+          }
+        },
+        {
+          "turn": 10,
+          "counselor": "Bapak sudah punya satu gagasan sendiri, yaitu menyibukkan tangan.",
+          "client": "Ya, itu bisa saya pikirkan. Belum tahu kapan.",
+          "state_after": {
+            "emotion": "Tenang, tetap berhati-hati.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure).",
+            "ambivalence": "Condong memikirkan cara mengurangi; belum ada komitmen.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Harapan dan arah perubahan": "Tidak ingin dinasihati; kalau diatur-atur justru malas. Punya gagasan awal: menyibukkan tangan agar lebih mampu menahan diri. Bersedia memikirkan gagasan itu; belum menentukan kapan."
+          }
+        }
+      ],
+      "final_state_doc": {
+        "emotion": "Tenang, tetapi tetap berhati-hati; masih belum yakin perlu berubah sekarang.",
+        "disclosure_level": "medium",
+        "ambivalence": "Dua sisi; alasan bertahan masih kuat, tetapi mulai memikirkan gagasan sendiri untuk menahan diri; belum ada komitmen.",
+        "discord_present": false
+      }
+    },
+    {
+      "session_code": "SS-RIN-01-S01",
+      "scenario_code": "SS-RIN-01",
+      "parent_session_code": null,
+      "initial_state": {
+        "emotion_type": "Berharap dapat lebih aktif, sekaligus ragu dan lelah karena waktu serta tenaga terbatas setelah bekerja.",
+        "emotion_cause": null,
+        "disclosure_level": "medium",
+        "disclosure_trigger": "Kondisi awal skenario",
+        "reasons_to_change": "ingin tubuh lebih segar dan tidak cepat lelah saat bermain dengan anak",
+        "reasons_to_maintain": "kelelahan sepulang kerja dan takut gagal menjaga konsistensi",
+        "ambivalence_lean": "both",
+        "discord_present": false,
+        "discord_context": null,
+        "discord_response": null
+      },
+      "initial_notes": {
+        "Keluhan dan keinginan lebih aktif": "",
+        "Riwayat dan dampak": "",
+        "Harapan dan arah perubahan": "",
+        "Pengalaman berjalan bersama anak": "",
+        "Dukungan keluarga dan jadwal pasangan": "",
+        "Rasa kecewa karena pola mulai lalu berhenti": ""
+      },
+      "turns": [
+        {
+          "turn": 1,
+          "counselor": "Apa yang membuat berjalan kaki terasa penting bagi Ibu Rina saat ini?",
+          "client": "Saya ingin badan lebih segar dan tidak cepat capek waktu main sama anak. Seharian duduk di kantor, tapi pulang biasanya sudah habis tenaga.",
+          "state_after": {
+            "emotion": "Berharap dapat lebih bugar, sekaligus ragu karena kelelahan.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure) — sesuai kondisi awal; klien langsung menceritakan alasan keluarga dan kendala kelelahan.",
+            "ambivalence": "Dua sisi tampak jelas (ingin badan segar untuk anak vs. tenaga habis sepulang kantor).",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Keluhan dan keinginan lebih aktif": "Ingin badan lebih segar saat bermain bersama anak, tetapi merasa kehabisan tenaga sepulang bekerja di kantor."
+          }
+        },
+        {
+          "turn": 2,
+          "counselor": "Ibu ingin lebih segar untuk anak, tetapi tenaga setelah bekerja sering sudah menipis.",
+          "client": "Iya, akhir pekan kadang jalan santai dengan anak. Hari kerja sulit mulai.",
+          "state_after": {
+            "emotion": "Ragu terhadap kemampuan memulai pada hari kerja.",
+            "disclosure_level": "medium",
+            "disclosure_text": "Sedang (Medium Disclosure).",
+            "ambivalence": "Dua sisi (sudah berjalan santai di akhir pekan, tetapi merasa sulit di hari kerja).",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Pengalaman berjalan bersama anak": "Kadang berjalan santai bersama anak pada akhir pekan."
+          }
+        },
+        {
+          "turn": 3,
+          "counselor": "Di hari kerja, bagian mana yang membuat Ibu merasa paling sulit melakukannya?",
+          "client": "Pulang menyiapkan makan, lalu menemani anak. Dulu pernah coba jalan pagi beberapa minggu lalu berhenti, jadi kecewa sendiri kalau gagal lagi.",
+          "state_after": {
+            "emotion": "Kecewa pada diri sendiri ketika mengingat kebiasaan jalan pagi yang terhenti.",
+            "disclosure_level": "high",
+            "disclosure_text": "Tinggi (High Disclosure) — meningkat dari Sedang setelah refleksi dan pertanyaan terbuka; klien membuka rasa kecewa atas kegagalan sebelumnya yang sensitif secara emosional.",
+            "ambivalence": "Hambatan rutinitas sore dan rasa takut gagal menjaga konsistensi tampak jelas.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Riwayat dan dampak": "Rutinitas sepulang kerja padat menyiapkan makan dan menemani anak; pernah memulai jalan pagi lalu terhenti.",
+            "Rasa kecewa karena pola mulai lalu berhenti": "Merasa kecewa pada diri sendiri saat kebiasaan jalan pagi terhenti sehingga takut gagal lagi."
+          }
+        },
+        {
+          "turn": 4,
+          "counselor": "Ibu sudah menjalankan banyak tanggung jawab di rumah dan kantor, sehingga Ibu tidak ingin terbebani target baru yang membuat Ibu merasa gagal.",
+          "client": "Betul. Saya tidak ingin menambah sesuatu yang terasa seperti kewajiban baru.",
+          "state_after": {
+            "emotion": "Merasa lega dan dipahami.",
+            "disclosure_level": "high",
+            "disclosure_text": "Tinggi (High Disclosure).",
+            "ambivalence": "Menolak pola target yang kaku, namun terbuka pada bentuk aktivitas yang tidak terasa sebagai kewajiban.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Harapan dan arah perubahan": "Tidak ingin aktivitas fisik menjadi kewajiban baru yang kaku dan membebani."
+          }
+        },
+        {
+          "turn": 5,
+          "counselor": "Boleh kita melihat dulu pilihan yang terasa ringan tanpa langsung membuat jadwal rutin?",
+          "client": "Boleh. Kalau melihat dulu pilihannya tanpa harus janji jadwal rutin, saya lebih tenang.",
+          "state_after": {
+            "emotion": "Lebih tenang karena tidak dituntut membuat jadwal kaku.",
+            "disclosure_level": "high",
+            "disclosure_text": "Tinggi (High Disclosure).",
+            "ambivalence": "Bersedia menjajaki pilihan langkah ringan.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Harapan dan arah perubahan": "Tidak ingin aktivitas fisik menjadi kewajiban baru yang kaku dan membebani. Arah menjajaki pilihan ringan tanpa jadwal kaku disetujui bersama."
+          }
+        },
+        {
+          "turn": 6,
+          "counselor": "Apa yang Ibu sukai dari jalan bersama anak pada akhir pekan?",
+          "client": "Kami bisa sambil ngobrol dan saya senang anak ikut bergerak. Rasanya tidak seperti olahraga yang harus ditargetkan.",
+          "state_after": {
+            "emotion": "Sedikit lebih positif dan antusias.",
+            "disclosure_level": "high",
+            "disclosure_text": "Tinggi (High Disclosure).",
+            "ambivalence": "Alasan mendukung perubahan menguat dari nilai kebersamaan dan memberi contoh aktif bagi anak.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Pengalaman berjalan bersama anak": "Jalan santai bersama anak menyenangkan karena bisa mengobrol tanpa target kaku dan memberi contoh aktif bagi anak."
+          }
+        },
+        {
+          "turn": 7,
+          "counselor": "Ibu menemukan cara bergerak yang menyenangkan bersama anak tanpa target yang kaku.",
+          "client": "Iya, kalau suasananya santai saya lebih mudah menikmati.",
+          "state_after": {
+            "emotion": "Lebih percaya diri.",
+            "disclosure_level": "high",
+            "disclosure_text": "Tinggi (High Disclosure).",
+            "ambivalence": "Keyakinan diri menguat pada aktivitas yang bersifat santai.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Pengalaman berjalan bersama anak": "Jalan santai bersama anak menyenangkan karena bisa mengobrol tanpa target kaku dan memberi contoh aktif bagi anak; suasana santai membuatnya lebih mudah menikmati."
+          }
+        },
+        {
+          "turn": 8,
+          "counselor": "Ibu menyukai suasana yang santai bersama keluarga, sekaligus ingin mencari celah yang realistis di tengah kesibukan minggu ini.",
+          "client": "Mungkin jalan singkat sepuluh menit saja, tapi saya masih khawatir siapa yang mendampingi anak.",
+          "state_after": {
+            "emotion": "Lebih terarah.",
+            "disclosure_level": "high",
+            "disclosure_text": "Tinggi (High Disclosure).",
+            "ambivalence": "Harapan mencoba jalan singkat (10 menit) dan pertimbangan pendampingan anak muncul bersamaan.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Harapan dan arah perubahan": "Tidak ingin aktivitas fisik menjadi kewajiban baru yang kaku dan membebani; mempertimbangkan kemungkinan jalan singkat sekitar sepuluh menit, tetapi masih khawatir siapa yang mendampingi anak."
+          }
+        },
+        {
+          "turn": 9,
+          "counselor": "Kapan biasanya Ibu tahu apakah waktu sepuluh menit dan dukungan di rumah itu tersedia?",
+          "client": "Suami pernah menawarkan menemani jalan sore di akhir pekan atau pas dia pulang lebih awal. Saya harus tanya dan lihat jadwal minggu ini.",
+          "state_after": {
+            "emotion": "Lebih terarah tetapi belum pasti sebelum mengecek jadwal.",
+            "disclosure_level": "high",
+            "disclosure_text": "Tinggi (High Disclosure).",
+            "ambivalence": "Condong mencoba setelah memeriksa jadwal bersama suami.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Dukungan keluarga dan jadwal pasangan": "Suami pernah menawarkan menemani jalan sore di akhir pekan atau saat pulang lebih awal; perlu mengecek jadwal pasangan minggu ini."
+          }
+        },
+        {
+          "turn": 10,
+          "counselor": "Kalau Ibu berkenan, Ibu bisa mulai dengan mencocokkan jadwal bersama suami untuk satu kali jalan singkat minggu ini tanpa perlu mematok target setiap hari, dan keputusannya tetap ada pada Ibu.",
+          "client": "Iya. Saya mau cek jadwal dulu dengan suami. Kalau memungkinkan, saya coba jalan singkat sekali dulu, belum bisa janji setiap hari.",
+          "state_after": {
+            "emotion": "Tenang dan lebih terarah.",
+            "disclosure_level": "high",
+            "disclosure_text": "Tinggi (High Disclosure).",
+            "ambivalence": "Condong mencoba langkah awal yang ringan setelah mengecek jadwal; batas tanpa janji harian tetap dijaga.",
+            "discord_present": false,
+            "discord_text": "Tidak tampak."
+          },
+          "notes_after": {
+            "Harapan dan arah perubahan": "Tidak ingin kewajiban olahraga yang kaku; berencana mencocokkan jadwal dengan suami untuk mencoba jalan singkat sekitar sepuluh menit satu kali minggu ini tanpa janji setiap hari."
+          }
+        }
+      ],
+      "final_state_doc": {
+        "emotion": "Berharap dan lebih tenang karena menemukan pilihan yang ringan, meskipun tetap berhati-hati soal waktu dan konsistensi.",
+        "disclosure_level": "high",
+        "ambivalence": "Dua sisi, sedikit condong mencoba jalan singkat setelah mengecek jadwal bersama suami; belum berkomitmen pada frekuensi harian.",
+        "discord_present": false
+      }
+    }
+  ]
+}
