@@ -31,7 +31,10 @@ export default function TranscriptPanel({ messages = [] }) {
           <div key={index} className={`flex flex-col w-full ${isCounselor ? 'items-end' : 'items-start'}`}>
             <div className="flex items-center gap-1.5 mb-1 px-1">
               <span className={`text-[10px] font-bold ${isCounselor ? 'text-[#352f55]' : 'text-amber-700'}`}>{msg.name}</span>
-              <span className="text-[9px] text-slate-400">{msg.time}</span>
+              <span className="text-[9px] text-slate-400">
+                {msg.time}
+                {msg.isTyped && ' · diketik'}
+              </span>
             </div>
             <div
               className={`max-w-[88%] px-3.5 py-2.5 text-xs md:text-[13px] leading-relaxed rounded-2xl border ${

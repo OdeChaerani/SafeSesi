@@ -115,22 +115,24 @@ export default function SimulationPage({
   // Ekspresi wajah avatar dari respons giliran terakhir (label kasar dari backend, bukan Client State)
   const [clientExpression, setClientExpression] = useState('neutral')
   const voice = useClientVoice()
-  // Jam sesi (ms sejak halaman simulasi dibuka); sama dengan asal elapsedSeconds.
-  const [sessionStart] = useState(() => Date.now())
-  const getElapsedMs = () => Date.now() - sessionStart
+  // Garis waktu sesi (ms sejak simulasi dimulai). Setelah detail sesi dimuat, jam melanjutkan dari akhir
+  // giliran terakhir di server, sehingga waktu saat mahasiswa pergi tidak terhitung.
+  const [openedAt] = useState(() => Date.now())
+  const originRef = useRef(null)
+  const getElapsedMs = () => Date.now() - (originRef.current ?? openedAt)
+  const lastSentRef = useRef(0)
 
   // State untuk Panel Transkrip (Buka/Tutup & Ukuran Lebar)
 
   // Fungsi pembatal animasi teks klien yang sedang berjalan (efek ketik atau mengikuti suara)
   const typingTimerRef = useRef(null)
 
-  // Timer sesi aktif berjalan otomatis dari 00:00
   useEffect(() => {
     const timer = setInterval(() => {
-      setElapsedSeconds((prev) => prev + 1)
-    }, 1000)
+      setElapsedSeconds(Math.floor((Date.now() - (originRef.current ?? openedAt)) / 1000))
+    }, 500)
     return () => clearInterval(timer)
-  }, [])
+  }, [openedAt])
 
   // Bersihkan timer efek mengetik saat unmount
   useEffect(() => {
@@ -155,6 +157,12 @@ export default function SimulationPage({
         .then((data) => {
           if (!isMounted || !data) return
           setSessionDetail(data)
+          // Sekali saja: efek ini bisa berjalan ulang, jam yang sudah berjalan tidak boleh dimundurkan.
+          if (originRef.current === null) {
+            const timelineEnd = Math.max(0, ...(data.turns || []).map((t) => t.end_ms || 0))
+            originRef.current = Date.now() - timelineEnd
+            setElapsedSeconds(Math.floor(timelineEnd / 1000))
+          }
           if (Array.isArray(data.turns) && data.turns.length > 0) {
             const clientSpeakerName =
               data.scenario?.client_name || activeClientName
@@ -167,6 +175,7 @@ export default function SimulationPage({
               time: formatTimestamp(Math.floor((t.start_ms || 0) / 1000)),
               text: t.content,
               isTyping: false,
+              isTyped: t.input_mode === 'text',
             }))
             setMessages(loaded)
           }
@@ -188,7 +197,13 @@ export default function SimulationPage({
 
     setMessages((prev) => [
       ...prev,
-      { sender: 'client', name: activeClientName, time: formatTimestamp(elapsedSeconds), text: '', isTyping: true },
+      {
+        sender: 'client',
+        name: activeClientName,
+        time: formatTimestamp(Math.floor(getElapsedMs() / 1000)),
+        text: '',
+        isTyping: true,
+      },
     ])
     const setClientText = (text, isTyping) =>
       setMessages((prev) => {
@@ -245,13 +260,21 @@ export default function SimulationPage({
       })
   }
 
-  // timing (input suara): { start_ms, end_ms, words } dari STT; input teks memakai jam sesi.
+  // timing (input suara): { start_ms, end_ms, words } dari STT. Ketikan tidak punya durasi bicara:
+  // awal dan akhirnya sama dengan saat dikirim, tanpa words.
   const handleSendMessage = async (text, timing = null) => {
+    if (timing && timing.start_ms < lastSentRef.current) {
+      setVoiceError('Rekaman ini dibuat sebelum giliran terakhir. Rekam ulang.')
+      return
+    }
+    const sentMs = getElapsedMs()
+    const turn = timing || { start_ms: sentMs, end_ms: sentMs }
     const counselorMsg = {
       sender: 'counselor',
       name: activeCounselorName,
-      time: formatTimestamp(elapsedSeconds),
+      time: formatTimestamp(Math.floor(turn.start_ms / 1000)),
       text,
+      isTyped: !timing,
     }
 
     setMessages((prev) => [...prev, counselorMsg])
@@ -265,18 +288,14 @@ export default function SimulationPage({
 
     // 100% LLM: Hubungkan langsung ke endpoint /turns di backend
     try {
-      const data = await sendTurn(
-        currentSessionId,
-        timing
-          ? { content: text, ...timing }
-          : { content: text, start_ms: elapsedSeconds * 1000, end_ms: (elapsedSeconds + 1) * 1000 }
-      )
+      const data = await sendTurn(currentSessionId, { content: text, ...turn, sent_ms: sentMs })
+      lastSentRef.current = sentMs
       setClientExpression(data.expression || 'neutral')
       showClientResponse(data.content, data.turn_no)
     } catch (err) {
       console.error('Gagal mengirim giliran:', err)
       setIsProcessing(false)
-      alert(err.status === 0 ? err.message : `Kendala Layanan AI: ${err.message}`)
+      alert(err.status === 0 || err.status === 409 ? err.message : `Kendala Layanan AI: ${err.message}`)
     }
   }
 
@@ -288,7 +307,7 @@ export default function SimulationPage({
     ) {
       if (currentSessionId) {
         try {
-          await endSession(currentSessionId)
+          await endSession(currentSessionId, getElapsedMs())
         } catch (e) {
           console.warn('Gagal mengakhiri sesi di backend:', e)
         }
