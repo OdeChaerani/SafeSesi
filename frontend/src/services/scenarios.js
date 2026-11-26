@@ -8,3 +8,8 @@ export function getCatalog({ search = '', status = 'all' } = {}) {
   if (status !== 'all') params.set('status', status)
   return request(`/scenarios/catalog?${params}`)
 }
+
+/** GET /scenarios/{id}: ringkasan publik untuk briefing. classId diisi bila dibuka dari kelas. */
+export const getScenarioBriefing = (scenarioId, classId) =>
+  request(`/scenarios/${scenarioId}${classId ? `?class_id=${classId}` : ''}`)
+

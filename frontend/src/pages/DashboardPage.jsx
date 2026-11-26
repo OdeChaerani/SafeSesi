@@ -70,23 +70,8 @@ export default function DashboardPage({ user }) {
     },
   ]
 
-  const openSimulation = (sessionId, scenario) =>
-    navigate(`/simulasi/${sessionId}`, { state: { scenario: { ...scenario, sessionId } } })
-
-  const resume = (item, sessionId) => openSimulation(sessionId, { scenarioId: item.id, title: item.title })
-
-  const openBriefing = (item, classId) =>
-    navigate(`/latihan-mandiri/${item.id}/briefing`, {
-      state: {
-        scenario: {
-          ...item,
-          classId,
-          category: 'Latihan Kelas',
-          // Mode "lanjutkan" hanya sah bila ada sesi selesai; tanpa itu halaman briefing tidak boleh menawarkannya.
-          attempt_status: item.last_completed_session_id ? item.attempt_status : 'unattempted',
-        },
-      },
-    })
+  // Briefing memuat datanya sendiri dari alamat, jadi aman dimuat ulang.
+  const openBriefing = (item, classId) => navigate(`/latihan-mandiri/${item.id}/briefing?kelas=${classId}`)
 
   return (
     <>
@@ -95,7 +80,7 @@ export default function DashboardPage({ user }) {
         academicYears={[...new Set(classes.data?.map((klass) => klass.academic_year))]}
       />
       <StatCards stats={stats} />
-      <ClassActivities classes={classes} onOpenBriefing={openBriefing} onResume={resume} />
+      <ClassActivities classes={classes} onOpenBriefing={openBriefing} />
       <RecentHistory sessions={sessions} onStartFirst={() => navigate('/latihan-mandiri')} />
     </>
   )

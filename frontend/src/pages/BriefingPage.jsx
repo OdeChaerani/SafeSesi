@@ -1,247 +1,213 @@
-import { useState, useMemo, useEffect } from 'react'
-import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import MediaPermissionCard from '../components/briefing/MediaPermissionCard'
+import { useCallback, useRef, useState } from 'react'
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import BriefingHeader from '../components/briefing/BriefingHeader'
 import ClientProfileCard from '../components/briefing/ClientProfileCard'
-import SessionModeSelector from '../components/briefing/SessionModeSelector'
-import SessionTermsCard from '../components/briefing/SessionTermsCard'
-import { FALLBACK_SCENARIOS } from '../data/fallbackScenarios'
-import { createSession, getBriefingTopics } from '../services/sessions'
+import DeviceCheckModal from '../components/briefing/DeviceCheckModal'
+import PreviousSessionNotes from '../components/briefing/PreviousSessionNotes'
+import SessionActionCard from '../components/briefing/SessionActionCard'
+import { ErrorState } from '../components/dashboard/SectionState'
+import Button from '../components/ui/Button'
+import Collapse from '../components/ui/Collapse'
+import Toasts from '../components/ui/Toasts'
+import { useRequest } from '../hooks/useRequest'
+import { useToasts } from '../hooks/useToasts'
+import { getClasses } from '../services/classes'
+import { getScenarioBriefing } from '../services/scenarios'
+import { createSession, listSessions } from '../services/sessions'
+import { numberSessions } from '../utils/sessionNumbers'
 
-export default function BriefingPage({
-  scenario: propsScenario,
-  initialMode = 'new',
-  onStartSimulation,
-  onBack: propsOnBack,
-}) {
-  const { scenarioId } = useParams()
-  const location = useLocation()
-  const navigate = useNavigate()
+const isId = (value) => /^[1-9]\d{0,17}$/.test(value)
 
-  // Ambil data skenario dari props, state navigasi, atau fallback berdasarkan scenarioId
-  const scenario = useMemo(() => {
-    if (propsScenario) return propsScenario
-    if (location.state?.scenario) return location.state.scenario
-    if (scenarioId) {
-      const found = FALLBACK_SCENARIOS.find(
-        (s) => String(s.id) === String(scenarioId)
-      )
-      if (found) return found
-    }
-    return FALLBACK_SCENARIOS[0]
-  }, [propsScenario, location.state, scenarioId])
-
-  const hasContinueOption =
-    scenario.attempt_status === 'attempted' ||
-    Boolean(scenario.last_completed_session_id) ||
-    Boolean(scenario.parentSessionId)
-
-  const [selectedMode, setSelectedMode] = useState(
-    initialMode === 'continue' && hasContinueOption ? 'continue' : 'new'
-  )
-  const [isStarting, setIsStarting] = useState(false)
-
-  const handleBack = () => {
-    if (propsOnBack) {
-      propsOnBack()
-    } else {
-      navigate('/latihan-mandiri')
-    }
-  }
-
-  // Contoh topik sesi sebelumnya, dipakai hanya bila backend tidak dapat dihubungi
-  const sampleTopics = [
-    {
-      id: 1,
-      title: 'Eksplorasi Keluhan Utama',
-      timeRange: '00:00 – 02:45',
-      response:
-        'Klien mengutarakan rasa lelah luar biasa membagi waktu antara jadwal kuliah padat, modul praktikum lab, dan kepanitiaan BEM.',
-      isLastActive: false,
-    },
-    {
-      id: 2,
-      title: 'Skala Prioritas & Hambatan',
-      timeRange: '02:46 – 05:30',
-      response:
-        'Klien mengaku kesulitan menolak permintaan tolong rekan organisasi, memicu penumpukan tugas hingga larut malam.',
-      isLastActive: false,
-    },
-    {
-      id: 3,
-      title: 'Eksplorasi Ambivalensi & Perasaan Bersalah',
-      timeRange: '05:31 – 08:12',
-      response:
-        'Klien mulai membuka diri bahwa ada keinginan mengurangi beban organisasi tapi cemas dicap tidak bertanggung jawab. Di sinilah percakapan terakhir terhenti.',
-      isLastActive: true,
-    },
-  ]
-
-  // Topik sesi induk dari backend (hanya topik yang sudah memiliki catatan)
-  const parentSessionId =
-    scenario.parentSessionId || scenario.last_completed_session_id || null
-  const [fetchedTopics, setFetchedTopics] = useState(null)
-
-  useEffect(() => {
-    if (selectedMode !== 'continue' || !parentSessionId) return undefined
-    let isMounted = true
-    getBriefingTopics(parentSessionId)
-      .then((data) => {
-        if (!isMounted) return
-        const topics = Array.isArray(data.topics) ? data.topics : []
-        setFetchedTopics(
-          topics.map((t, idx) => ({
-            id: idx + 1,
-            title: t.name,
-            response: t.description,
-            isLastActive: idx === topics.length - 1,
-          }))
-        )
-      })
-      .catch((err) => {
-        console.warn('Gagal memuat topik sesi sebelumnya, memakai contoh lokal:', err)
-      })
-    return () => {
-      isMounted = false
-    }
-  }, [selectedMode, parentSessionId])
-
-  const previousTopics = fetchedTopics ?? sampleTopics
-
-  const handleStart = async () => {
-    setIsStarting(true)
-    try {
-      const parentId =
-        selectedMode === 'continue'
-          ? scenario.parentSessionId || scenario.last_completed_session_id || 1
-          : null
-
-      // Hubungkan ke endpoint POST /api/v1/sessions
-      const sessionData = await createSession({
-        scenario_id: scenario.id || scenario.scenarioId || 1,
-        mode: selectedMode,
-        parent_session_id: parentId,
-        class_id: scenario.classId || null,
-      })
-      const payload = {
-        ...scenario,
-        sessionId: sessionData.id,
-        scenarioId: sessionData.scenario_id,
-        mode: selectedMode,
-        publicScenario: sessionData.scenario,
-        scenarioTitle: scenario.title,
-        clientName: scenario.client_name || scenario.clientName || 'Nadia Putri',
-        clientAge: scenario.client_age || scenario.clientAge || 19,
-        clientGender: scenario.client_gender || scenario.clientGender || 'Perempuan',
-        clientRole: scenario.client_role || scenario.clientRole || 'Mahasiswa',
-        maritalStatus: scenario.marital_status || scenario.maritalStatus || null,
-        mainProblem: scenario.main_problem || scenario.problem || '',
-        category: scenario.category || 'Latihan Mandiri',
-      }
-
-      if (onStartSimulation) {
-        onStartSimulation(payload)
-      } else {
-        navigate(`/simulasi/${sessionData.id}`, { state: { scenario: payload } })
-      }
-    } catch (err) {
-      console.warn('Backend offline / gagal koneksi, menggunakan fallback sesi lokal:', err)
-      const fallbackId = Date.now()
-      const fallbackPayload = {
-        ...scenario,
-        sessionId: fallbackId,
-        scenarioId: scenario.id || 1,
-        mode: selectedMode,
-        scenarioTitle: scenario.title,
-        clientName: scenario.client_name || scenario.clientName || 'Nadia Putri',
-        clientAge: scenario.client_age || scenario.clientAge || 19,
-        clientGender: scenario.client_gender || scenario.clientGender || 'Perempuan',
-        clientRole: scenario.client_role || scenario.clientRole || 'Mahasiswa',
-        maritalStatus: scenario.marital_status || scenario.maritalStatus || null,
-        mainProblem: scenario.main_problem || scenario.problem || '',
-        category: scenario.category || 'Latihan Mandiri',
-      }
-
-      if (onStartSimulation) {
-        onStartSimulation(fallbackPayload)
-      } else {
-        navigate(`/simulasi/${fallbackId}`, {
-          state: { scenario: fallbackPayload },
-        })
-      }
-    } finally {
-      setIsStarting(false)
-    }
-  }
-
+function InvalidAddress({ message, onBack }) {
   return (
-    <div className="flex flex-col gap-6 w-full pb-8">
-      {/* 1. Header & Breadcrumb */}
-      <BriefingHeader
-        scenarioTitle={scenario.title}
-        category={scenario.category || 'Latihan Mandiri'}
-        onBack={handleBack}
-      />
+    <div role="alert" className="bg-white rounded-2xl p-8 flex flex-col items-center text-center gap-3">
+      <span className="material-symbols-outlined text-[32px] text-rose-700" aria-hidden="true">error</span>
+      <h1 className="text-base font-bold text-[#1e1a34]">Briefing tidak bisa dibuka</h1>
+      <p className="text-sm text-slate-600 max-w-md">{message}</p>
+      <Button icon="arrow_back" onClick={onBack} className="min-h-10">Kembali ke beranda</Button>
+    </div>
+  )
+}
 
-      {/* 2. Mode Selector (Hanya muncul jika skenario sudah pernah dicoba sebelumnya) */}
-      {hasContinueOption && (
-        <SessionModeSelector
-          selectedMode={selectedMode}
-          onSelectMode={setSelectedMode}
-          lastSessionInfo={{
-            attemptNo: 2,
-            timestamp: '08:12',
-            relativeTime: '2 hari lalu',
-          }}
-        />
-      )}
-
-      {/* 3. Grid Konten Utama: 7 Kolom Kiri (Profil Klien & Masalah) vs 5 Kolom Kanan (Ketentuan & Aksi) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Kolom Kiri */}
-        <div className="lg:col-span-7 flex flex-col gap-6">
-          <ClientProfileCard
-            client={{
-              name: scenario.client_name || scenario.clientName || 'Nadia Putri',
-              age: scenario.client_age || 19,
-              gender: scenario.client_gender || 'Perempuan',
-              role: scenario.client_role || 'Semester 3 · Fakultas Psikologi',
-              marital_status: scenario.marital_status || scenario.maritalStatus || null,
-              problem:
-                scenario.initial_summary ||
-                scenario.main_problem ||
-                scenario.problem ||
-                'Nadia merasa sangat kewalahan membagi waktu antara beban perkuliahan reguler, penugasan praktikum laboratorium, dan komitmen tanggung jawab organisasi kemahasiswaan.',
-              history_impact: scenario.history_impact || scenario.historyImpact || null,
-              expectation_change_context:
-                scenario.expectation_change_context ||
-                scenario.expectationChangeContext ||
-                scenario.change_target ||
-                null,
-              change_target: scenario.change_target || scenario.changeTarget || null,
-            }}
-            mode={selectedMode}
-            category={scenario.category || 'Latihan Mandiri'}
-            previousTopics={previousTopics}
-            lastSavedTime="08:12"
-          />
+function Skeleton() {
+  return (
+    <div role="status" className="flex flex-col gap-4">
+      <span className="sr-only">Memuat briefing</span>
+      <span className="ss-skeleton block h-4 w-48 rounded" />
+      <span className="ss-skeleton block h-7 w-80 max-w-full rounded" />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div className="lg:col-span-7 h-72 bg-white rounded-2xl p-6 space-y-4">
+          <span className="ss-skeleton block h-14 w-2/3 rounded-xl" />
+          <span className="ss-skeleton block h-20 rounded-xl" />
+          <span className="ss-skeleton block h-16 rounded-xl" />
         </div>
-
-        {/* Kolom Kanan */}
-        <div className="lg:col-span-5 flex flex-col gap-4">
-          <SessionTermsCard
-            category={scenario.category || 'Latihan Mandiri'}
-            mode={selectedMode}
-            lastSavedTime="08:12"
-            onStartSession={handleStart}
-            onBack={handleBack}
-            isLoading={isStarting}
-          />
-
-          <MediaPermissionCard />
+        <div className="lg:col-span-5 h-72 bg-white rounded-2xl p-5 space-y-3">
+          <span className="ss-skeleton block h-14 rounded-xl" />
+          <span className="ss-skeleton block h-14 rounded-xl" />
+          <span className="ss-skeleton block h-11 rounded-xl" />
         </div>
       </div>
     </div>
   )
 }
 
+function Briefing({ scenarioId, classId }) {
+  const navigate = useNavigate()
+  // Katalog masih mengirim pilihan awal lewat state navigasi; data skenario selalu dari server.
+  const preset = useLocation().state?.scenario
+  const [chosenMode, setChosenMode] = useState(preset?.mode === 'continue' ? 'continue' : 'new')
+  const [chosenParent, setChosenParent] = useState(preset?.parentSessionId ?? null)
+  const [isStarting, setIsStarting] = useState(false)
+  // Aksi yang menunggu cek perangkat: null, { type: 'start' }, atau { type: 'resume', sessionId }.
+  const [pending, setPending] = useState(null)
+  const startingRef = useRef(false)
+  const { toasts, addToast, dismissToast } = useToasts()
+
+  const loadBriefing = useCallback(async () => {
+    const [scenario, classes] = await Promise.all([getScenarioBriefing(scenarioId, classId), classId ? getClasses() : []])
+    const klass = classes.find((item) => item.id === classId)
+    if (classId && !klass) throw new Error('Kelas ini tidak terhubung dengan akunmu.')
+    return { scenario, className: klass?.name }
+  }, [scenarioId, classId])
+  const briefing = useRequest(loadBriefing)
+
+  // Sesi milik sendiri pada konteks yang sama (mandiri, atau kelas ini), terbaru dulu. Semua status diambil
+  // agar nomor sesi tidak bergeser saat sesi yang masih berjalan nanti selesai.
+  const loadHistory = useCallback(async () => {
+    // shortcut: API membatasi 100 baris; nomor sesi meleset bila satu skenario dicoba lebih dari itu.
+    const data = await listSessions({ limit: 100, scenarioId, type: classId ? 'class' : 'independent' })
+    return numberSessions(data.items.filter((item) => item.class_id === classId))
+  }, [scenarioId, classId])
+  const history = useRequest(loadHistory)
+
+  const goBack = () => navigate(classId ? '/beranda' : '/latihan-mandiri')
+
+  if (briefing.data === undefined) {
+    if (!briefing.error) return <Skeleton />
+    return (
+      <div className="flex flex-col gap-3">
+        <ErrorState message={`Briefing tidak bisa dibuka. ${briefing.error.message}`} onRetry={briefing.reload} />
+        <Button variant="outline" icon="arrow_back" onClick={() => navigate('/beranda')} className="self-start min-h-10">
+          Kembali ke beranda
+        </Button>
+      </div>
+    )
+  }
+
+  const { scenario, className } = briefing.data
+  const completed = history.data?.filter((item) => item.status === 'completed') ?? []
+  const mode = chosenMode === 'continue' && completed.length > 0 ? 'continue' : 'new'
+  const parentId =
+    mode === 'continue' ? (completed.some((item) => item.id === chosenParent) ? chosenParent : completed[0].id) : null
+  // Pilihan "lanjutkan" dari katalog belum bisa dipastikan selama riwayat dimuat.
+  const isWaitingHistory = chosenMode === 'continue' && history.data === undefined && !history.error
+
+  const openSimulation = (sessionId, publicScenario) =>
+    navigate(`/simulasi/${sessionId}`, {
+      state: {
+        scenario: {
+          sessionId,
+          scenarioId,
+          title: scenario.title,
+          publicScenario,
+          category: classId ? 'Latihan Kelas' : 'Latihan Mandiri',
+        },
+      },
+    })
+
+  const start = async () => {
+    if (startingRef.current || isWaitingHistory) return
+    startingRef.current = true
+    setIsStarting(true)
+    try {
+      const created = await createSession({
+        scenario_id: scenarioId,
+        class_id: classId,
+        // "repeat" = mulai dari awal untuk skenario yang sudah pernah dicoba.
+        mode: mode === 'continue' ? 'continue' : scenario.total_attempts > 0 ? 'repeat' : 'new',
+        parent_session_id: parentId,
+      })
+      openSimulation(created.id, created.scenario)
+    } catch (err) {
+      addToast('error', `Sesi gagal dibuat. ${err.message}`)
+      startingRef.current = false
+      setIsStarting(false)
+      setPending(null) // tutup modal agar pesan galat terlihat
+    }
+  }
+
+  const askStart = () => setPending({ type: 'start' })
+  const confirm = () => (pending.type === 'resume' ? openSimulation(pending.sessionId, scenario) : start())
+
+  return (
+    <div className="flex flex-col gap-3 w-full max-w-6xl pb-4">
+      <BriefingHeader title={scenario.title} className={className} onBack={goBack} />
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+        <div className="lg:col-span-8 flex flex-col">
+          <ClientProfileCard scenario={scenario} />
+          <Collapse open={mode === 'continue'}>
+            <div className="pt-3">
+              {parentId && (
+                <PreviousSessionNotes
+                  sessionId={parentId}
+                  sessionNumber={completed.find((item) => item.id === parentId).number}
+                  onOpenFeedback={(id) => navigate(`/evaluasi/${id}`)}
+                />
+              )}
+            </div>
+          </Collapse>
+        </div>
+
+        <div className="lg:col-span-4">
+          <div className="flex flex-col gap-4 lg:sticky lg:top-[4.5rem] lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto">
+            <SessionActionCard
+              className={className}
+              history={history}
+              completed={completed}
+              mode={mode}
+              onModeChange={setChosenMode}
+              parentId={parentId}
+              onParentChange={setChosenParent}
+              activeSessionId={scenario.active_session_id}
+              onResume={(sessionId) => setPending({ type: 'resume', sessionId })}
+              onStart={askStart}
+              isStarting={isStarting || isWaitingHistory}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Layar sempit: tombol mulai menempel di bawah agar selalu terjangkau. */}
+      <div className="lg:hidden sticky bottom-3 z-20">
+        <Button iconRight="play_arrow" loading={isStarting || isWaitingHistory} onClick={askStart} className="w-full min-h-12 !shadow-lg">
+          {isStarting ? 'Menyiapkan sesi...' : mode === 'continue' ? 'Lanjutkan sesi' : 'Mulai sesi'}
+        </Button>
+      </div>
+
+      {pending && (
+        <DeviceCheckModal
+          confirmLabel={pending.type === 'resume' || mode === 'continue' ? 'Lanjutkan sesi' : 'Mulai sesi'}
+          isStarting={isStarting}
+          onConfirm={confirm}
+          onClose={() => setPending(null)}
+        />
+      )}
+      <Toasts toasts={toasts} onDismiss={dismissToast} />
+    </div>
+  )
+}
+
+export default function BriefingPage() {
+  const { scenarioId } = useParams()
+  const [searchParams] = useSearchParams()
+  const classParam = searchParams.get('kelas')
+  const navigate = useNavigate()
+
+  if (!isId(scenarioId) || (classParam !== null && !isId(classParam))) {
+    return <InvalidAddress message="Alamat skenario atau kelas tidak valid." onBack={() => navigate('/beranda')} />
+  }
+  const classId = classParam === null ? null : Number(classParam)
+  // key: pindah skenario atau kelas memulai halaman dengan keadaan bersih.
+  return <Briefing key={`${scenarioId}-${classId}`} scenarioId={Number(scenarioId)} classId={classId} />
+}

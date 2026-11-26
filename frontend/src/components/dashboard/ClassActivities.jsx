@@ -20,7 +20,7 @@ function CardSkeleton() {
  * Kartu skenario satu kelas, diletakkan di grid bersama. Tiap kelas dimuat sendiri (paralel),
  * sehingga kegagalan satu kelas tidak menghilangkan kegiatan kelas lain.
  */
-function ClassCards({ klass, onOpenBriefing, onResume }) {
+function ClassCards({ klass, onOpenBriefing }) {
   const load = useCallback(() => getClassScenarios(klass.id), [klass.id])
   const { data, error, reload } = useRequest(load)
   const course = `${klass.name} · ${klass.lecturers.join(', ') || 'Dosen belum ditetapkan'}`
@@ -75,21 +75,13 @@ function ClassCards({ klass, onOpenBriefing, onResume }) {
           {item.total_attempts > 0 ? `${item.total_attempts} percobaan` : 'Belum ada percobaan'}
         </span>
         <div className="flex flex-wrap items-center gap-2">
-          {item.active_session_id && (
-            <button
-              type="button"
-              onClick={() => onResume(item, item.active_session_id)}
-              className="bg-slate-100 hover:bg-slate-200/80 text-[#1e1a34] px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer active:scale-95"
-            >
-              Lanjutkan sesi
-            </button>
-          )}
           <button
             type="button"
             onClick={() => onOpenBriefing(item, klass.id)}
             className="bg-[#f5b51b] hover:bg-[#e2a613] text-[#1e1a34] px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition shadow-xs cursor-pointer active:scale-95"
           >
-            <span>Mulai latihan</span>
+            {/* Selalu lewat briefing; di sana ada pilihan melanjutkan sesi yang belum diakhiri. */}
+            <span>{item.active_session_id ? 'Lanjutkan sesi' : 'Mulai latihan'}</span>
             <span className="material-symbols-outlined text-[16px]" aria-hidden="true">play_arrow</span>
           </button>
         </div>
@@ -99,7 +91,7 @@ function ClassCards({ klass, onOpenBriefing, onResume }) {
 }
 
 /** classes = hasil useRequest(getClasses). */
-export default function ClassActivities({ classes, onOpenBriefing, onResume }) {
+export default function ClassActivities({ classes, onOpenBriefing }) {
   const { data, error, reload } = classes
   return (
     <div className="flex flex-col gap-3">
@@ -132,7 +124,7 @@ export default function ClassActivities({ classes, onOpenBriefing, onResume }) {
       ) : (
         <div className={`${gridClass} peer`}>
           {data.map((klass) => (
-            <ClassCards key={klass.id} klass={klass} onOpenBriefing={onOpenBriefing} onResume={onResume} />
+            <ClassCards key={klass.id} klass={klass} onOpenBriefing={onOpenBriefing} />
           ))}
         </div>
       )}

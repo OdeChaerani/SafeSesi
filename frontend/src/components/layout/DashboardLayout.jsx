@@ -27,7 +27,7 @@ export default function DashboardLayout({
         onLogout={onLogout}
       />
       <main
-        className={`relative pt-14 min-h-screen overflow-x-hidden bg-[#352f55] transition-all duration-300 ease-in-out ${
+        className={`relative pt-14 min-h-screen overflow-x-clip bg-[#352f55] transition-all duration-300 ease-in-out ${
           isSidebarOpen ? 'w-[calc(100%-15rem)] ml-60' : 'w-full ml-0'
         }`}
       >

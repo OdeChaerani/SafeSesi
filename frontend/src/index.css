@@ -133,6 +133,18 @@ body {
 @keyframes ss-toast-in { from { opacity: 0; transform: translateY(8px); } }
 @keyframes ss-toast-out { to { opacity: 0; transform: translateX(16px); } }
 
+/* Modal di tengah (mis. cek perangkat); preflight Tailwind menghapus margin bawaan dialog. */
+.ss-modal {
+  margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 1rem;
+  width: min(28rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  box-shadow: 0 20px 40px -15px rgb(30 26 52 / 0.45);
+}
+.ss-modal::backdrop { background: rgb(30 26 52 / 0.6); }
+
 @media (prefers-reduced-motion: reduce) {
   .ss-spinner, .ss-skeleton, .ss-flash, .ss-menu, .ss-drawer, .ss-drawer::backdrop, .ss-drawer-closing,
   .ss-drawer-closing::backdrop, .ss-shake, .ss-check:checked, .ss-toast-in, .ss-toast-out { animation: none; }
