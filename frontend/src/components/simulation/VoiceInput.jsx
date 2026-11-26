@@ -6,7 +6,7 @@ const PREVIEW_MS = 3000 // ~20 permintaan/menit selama merekam: di bawah batas l
 
 // Tombol bicara: tekan untuk mulai, tekan lagi untuk selesai, atau berhenti sendiri saat hening.
 // Lalu panel tinjau transkrip (kirim atau rekam ulang). Satu rekaman = satu giliran konselor.
-// onSend(text, { start_ms, end_ms, words }) mengirim giliran ke pipeline giliran.
+// onSend(text, { start_ms, end_ms, words }) mengirim giliran; hasilnya false bila tidak tersimpan.
 export default function VoiceInput({ sessionId, getElapsedMs, onSend, onPress, disabled }) {
   const finishRef = useRef(null)
   const { start, stop, snapshot, isRecording } = usePushToTalk({ onAutoStop: () => finishRef.current?.() })
@@ -65,11 +65,16 @@ export default function VoiceInput({ sessionId, getElapsedMs, onSend, onPress, d
     }
   }
 
-  const send = () => {
-    const { text, ...timing } = review
+  const send = async () => {
+    const sent = review
+    const { text, ...timing } = sent
     setReview(null)
     setPhase('idle')
-    onSend(text, timing)
+    if (!(await onSend(text, timing))) {
+      // Gagal terkirim: rekaman ditampilkan lagi agar bisa dikirim ulang tanpa merekam ulang.
+      setReview(sent)
+      setPhase('review')
+    }
   }
 
   useEffect(() => {

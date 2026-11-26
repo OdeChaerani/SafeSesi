@@ -231,7 +231,7 @@ function App() {
         path="/simulasi/:sessionId"
         element={
           <ProtectedRoute user={user} allowedRoles={['student']}>
-            <SimulationPage />
+            <SimulationPage user={user} />
           </ProtectedRoute>
         }
       />

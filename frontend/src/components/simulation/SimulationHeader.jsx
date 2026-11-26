@@ -5,6 +5,7 @@ export default function SimulationHeader({
   category = 'Latihan Kelas',
   elapsedSeconds,
   onExitSession,
+  isEnding = false,
 }) {
   const [internalSeconds, setInternalSeconds] = useState(0)
 
@@ -67,10 +68,11 @@ export default function SimulationHeader({
         <button
           type="button"
           onClick={onExitSession}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200/80 transition-colors text-xs font-semibold cursor-pointer shadow-xs"
+          disabled={isEnding}
+          className="disabled:opacity-50 disabled:cursor-wait flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200/80 transition-colors text-xs font-semibold cursor-pointer shadow-xs"
         >
           <span className="material-symbols-outlined text-[16px]">logout</span>
-          <span>Akhiri sesi</span>
+          <span>{isEnding ? 'Mengakhiri…' : 'Akhiri sesi'}</span>
         </button>
       </div>
     </header>

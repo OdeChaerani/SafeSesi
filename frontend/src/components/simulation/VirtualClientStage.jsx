@@ -12,8 +12,7 @@ import tableImage from '../../assets/table.png' // lapisan transparan seukuran l
 const ClientAvatar = lazy(() => import('./ClientAvatar'))
 
 export default function VirtualClientStage({
-  client = {},
-  clientName: propClientName,
+  client,
   onSendMessage,
   isProcessing = false,
   messages = [],
@@ -27,25 +26,14 @@ export default function VirtualClientStage({
   const [isCamPreviewOpen, setIsCamPreviewOpen] = useState(true)
   const [isCamActive, setIsCamActive] = useState(true)
 
-  const effectiveClient = {
-    name: client.name || propClientName || 'Nadia Putri',
-    age: client.age || 19,
-    gender: client.gender || 'Perempuan',
-    role: client.role || 'Mahasiswa',
-    maritalStatus: client.maritalStatus || client.marital_status || null,
-    problem:
-      client.problem ||
-      client.main_problem ||
-      'Kewalahan membagi waktu kuliah & organisasi, memicu kelelahan mental.',
-  }
-
   const [inputText, setInputText] = useState('')
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!inputText.trim() || isProcessing) return
+    const text = inputText.trim()
+    if (!text || isProcessing) return
     voice?.unlock() // klik kirim = interaksi pengguna, audio klien boleh diputar setelahnya
-    onSendMessage(inputText.trim())
     setInputText('')
+    if (!(await onSendMessage(text))) setInputText(text) // gagal terkirim: ketikan dikembalikan
   }
 
   return (
@@ -68,32 +56,24 @@ export default function VirtualClientStage({
             <div className="flex justify-between items-center gap-2">
               <span className="text-slate-500 font-medium shrink-0">Nama:</span>
               <span className="font-bold text-[#1e1a34] truncate text-right">
-                {effectiveClient.name}
+                {client.name}
               </span>
             </div>
             <div className="flex justify-between items-center gap-2">
               <span className="text-slate-500 font-medium shrink-0">Usia &amp; Gender:</span>
               <span className="font-semibold text-slate-700 truncate text-right">
-                {effectiveClient.age} th · {effectiveClient.gender}
+                {client.age} th · {client.gender}
               </span>
             </div>
             <div className="flex justify-between items-center gap-2">
               <span className="text-slate-500 font-medium shrink-0">Pekerjaan:</span>
-              <span className="font-semibold text-slate-700 truncate text-right" title={effectiveClient.role}>
-                {effectiveClient.role}
+              <span className="font-semibold text-slate-700 truncate text-right" title={client.role}>
+                {client.role}
               </span>
             </div>
-            {effectiveClient.maritalStatus && (
-              <div className="flex justify-between items-center gap-2">
-                <span className="text-slate-500 font-medium shrink-0">Pernikahan:</span>
-                <span className="font-semibold text-slate-700 truncate text-right">
-                  {effectiveClient.maritalStatus}
-                </span>
-              </div>
-            )}
-            {effectiveClient.problem && (
+            {client.problem && (
               <div className="mt-1 p-2 rounded-lg text-[10px] leading-relaxed text-slate-600 bg-slate-50 border border-slate-200/80 max-h-28 overflow-y-auto">
-                {effectiveClient.problem}
+                {client.problem}
               </div>
             )}
           </div>
@@ -151,7 +131,7 @@ export default function VirtualClientStage({
 
       {/* Klien duduk di seberang meja: latar (seluruh halaman) -> avatar -> gambar meja di depan */}
       <div className="absolute inset-0 z-10">
-        <AvatarErrorBoundary key={avatarUrl(client.avatarFile, effectiveClient.gender)}>
+        <AvatarErrorBoundary key={avatarUrl(client.avatarFile, client.gender)}>
         <Suspense
           fallback={
             <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs" role="status">
@@ -159,7 +139,7 @@ export default function VirtualClientStage({
             </div>
           }
         >
-          <ClientAvatar url={avatarUrl(client.avatarFile, effectiveClient.gender)} getSpeech={voice?.getSpeech} expression={expression} />
+          <ClientAvatar url={avatarUrl(client.avatarFile, client.gender)} getSpeech={voice?.getSpeech} expression={expression} />
         </Suspense>
         </AvatarErrorBoundary>
       </div>

@@ -102,18 +102,7 @@ function Briefing({ scenarioId, classId }) {
   // Pilihan "lanjutkan" dari katalog belum bisa dipastikan selama riwayat dimuat.
   const isWaitingHistory = chosenMode === 'continue' && history.data === undefined && !history.error
 
-  const openSimulation = (sessionId, publicScenario) =>
-    navigate(`/simulasi/${sessionId}`, {
-      state: {
-        scenario: {
-          sessionId,
-          scenarioId,
-          title: scenario.title,
-          publicScenario,
-          category: classId ? 'Latihan Kelas' : 'Latihan Mandiri',
-        },
-      },
-    })
+  const openSimulation = (sessionId) => navigate(`/simulasi/${sessionId}`)
 
   const start = async () => {
     if (startingRef.current || isWaitingHistory) return
@@ -127,7 +116,7 @@ function Briefing({ scenarioId, classId }) {
         mode: mode === 'continue' ? 'continue' : scenario.total_attempts > 0 ? 'repeat' : 'new',
         parent_session_id: parentId,
       })
-      openSimulation(created.id, created.scenario)
+      openSimulation(created.id)
     } catch (err) {
       addToast('error', `Sesi gagal dibuat. ${err.message}`)
       startingRef.current = false
@@ -137,7 +126,7 @@ function Briefing({ scenarioId, classId }) {
   }
 
   const askStart = () => setPending({ type: 'start' })
-  const confirm = () => (pending.type === 'resume' ? openSimulation(pending.sessionId, scenario) : start())
+  const confirm = () => (pending.type === 'resume' ? openSimulation(pending.sessionId) : start())
 
   return (
     <div className="flex flex-col gap-3 w-full max-w-6xl pb-4">
