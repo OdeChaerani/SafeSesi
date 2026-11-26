@@ -69,6 +69,16 @@ class TestHistoryQuery(BaseTestCase):
         self.assertNotIn("s.class_id IS", sql)
         self.assertEqual(args, (STUDENT, 7, 20))  # limit selalu parameter terakhir
 
+    def test_status_filter_keeps_ownership_and_is_parameterised(self):
+        self.run_list(kind="independent", scenario_id=7, status="completed", limit=20)
+        sql, args = self.fetch_call()
+        self.assertIn("s.student_id = $1", sql)
+        self.assertIn("s.deleted_at IS NULL", sql)
+        self.assertIn("s.status::text = $3", sql)
+        self.assertEqual(args, (STUDENT, 7, "completed", 20))
+        self.run_list()
+        self.assertNotIn("s.status::text =", self.fetch_call()[0])
+
     def test_reads_only_public_snapshot_fields(self):
         self.run_list()
         sql, _ = self.fetch_call()
@@ -104,8 +114,8 @@ class TestHistoryQuery(BaseTestCase):
     def test_endpoint_passes_only_the_logged_in_student(self):
         user = self.get_sample_user(user_id=STUDENT, role="student")
         with patch("api.sessions.list_student_sessions", AsyncMock(return_value={"items": []})) as repo:
-            self.run_async(list_my_sessions(kind="class", scenario_id=2, limit=50, user=user, conn=self.conn))
-        repo.assert_awaited_once_with(self.conn, STUDENT, kind="class", scenario_id=2, limit=50)
+            self.run_async(list_my_sessions(kind="class", scenario_id=2, session_status=None, limit=50, user=user, conn=self.conn))
+        repo.assert_awaited_once_with(self.conn, STUDENT, kind="class", scenario_id=2, status=None, limit=50)
 
 
 class TestTotalDuration(BaseTestCase):
@@ -249,8 +259,15 @@ class TestHistoryHttp(BaseTestCase):
         with patch("api.sessions.list_student_sessions", AsyncMock(return_value=self.result)) as repo:
             res = self.client.get("/api/v1/sessions?type=class&scenario_id=3&limit=5")
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(repo.call_args.kwargs, {"kind": "class", "scenario_id": 3, "limit": 5})
+        self.assertEqual(repo.call_args.kwargs, {"kind": "class", "scenario_id": 3, "status": None, "limit": 5})
         self.assertEqual(set(res.json()), {"items", "total", "total_sessions", "completed_sessions", "awaiting_evaluation", "evaluation_failed", "total_duration_seconds"})
+
+    def test_status_query_param(self):
+        with patch("api.sessions.list_student_sessions", AsyncMock(return_value=self.result)) as repo:
+            self.assertEqual(self.client.get("/api/v1/sessions?status=completed").status_code, 200)
+            self.assertEqual(repo.call_args.kwargs["status"], "completed")
+            self.assertEqual(self.client.get("/api/v1/sessions?status=semua").status_code, 422)
+            self.assertEqual(repo.await_count, 1)
 
     def test_invalid_type_or_limit_rejected(self):
         with patch("api.sessions.list_student_sessions", AsyncMock(return_value=self.result)) as repo:

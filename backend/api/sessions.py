@@ -23,12 +23,13 @@ from repositories.topics import (
     get_latest_topic_notes,
     save_topic_note,
 )
-from repositories.turns import get_session_turns
+from repositories.turns import get_session_turns, get_timeline
 from schemas.scenario import PublicScenarioInfo
 from schemas.student import SessionHistoryResponse, TranscriptResponse
 from schemas.session import (
     CreateSessionRequest,
     CreateTurnRequest,
+    EndSessionRequest,
     EndSessionResponse,
     SessionResponse,
     TurnResponse,
@@ -217,12 +218,15 @@ async def create_new_session(
 async def list_my_sessions(
     kind: Literal["all", "independent", "class"] = Query(default="all", alias="type", description="Jenis latihan"),
     scenario_id: int | None = Query(default=None, description="Saring berdasarkan skenario"),
+    session_status: Literal["completed", "in_progress"] | None = Query(default=None, alias="status", description="Saring status sesi"),
     limit: int = Query(default=100, ge=1, le=100, description="Jumlah maksimum baris (tanpa paginasi)"),
     user: dict[str, Any] = Depends(require_role("student")),
     conn: asyncpg.Connection = Depends(get_db),
 ) -> Any:
     """Riwayat sesi milik mahasiswa yang sedang masuk, terbaru dulu, beserta hitungan untuk beranda."""
-    return await list_student_sessions(conn, user["id"], kind=kind, scenario_id=scenario_id, limit=limit)
+    return await list_student_sessions(
+        conn, user["id"], kind=kind, scenario_id=scenario_id, status=session_status, limit=limit
+    )
 
 
 @router.get("/{session_id}/transcript", response_model=TranscriptResponse)
@@ -325,6 +329,25 @@ async def get_briefing_topics(
     }
 
 
+# Kelonggaran batas atas garis waktu terhadap jam database (pembulatan dan latensi).
+_TIMELINE_TOLERANCE_MS = 5000
+
+
+async def _check_turn_timing(conn: asyncpg.Connection, session_id: int, payload: CreateTurnRequest) -> None:
+    """Server adalah sumber kebenaran garis waktu: tidak boleh mundur atau melampaui waktu nyata."""
+    timeline = await get_timeline(conn, session_id)
+    if payload.start_ms < timeline["end_ms"]:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Waktu giliran ini mendahului giliran sebelumnya. Muat ulang halaman, lalu ulangi.",
+        )
+    if payload.sent_ms > timeline["wall_ms"] + _TIMELINE_TOLERANCE_MS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Waktu giliran melampaui lama sesi sejak dimulai.",
+        )
+
+
 @router.post("/{session_id}/turns", response_model=TurnResponse)
 async def send_counselor_turn(
     session_id: int,
@@ -363,6 +386,7 @@ async def send_counselor_turn(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Sesi latihan ini sudah selesai dan tidak dapat menerima giliran percakapan baru.",
                 )
+            await _check_turn_timing(conn, session_id, payload)
         except BaseException:
             await turn_lock.release(commit=False)
             raise
@@ -377,7 +401,8 @@ async def send_counselor_turn(
                 end_ms=payload.end_ms,
                 turn_lock=turn_lock,
                 lock_wait_ms=lock_wait_ms,
-                word_timestamps=[w.model_dump() for w in payload.words] if payload.words else None,
+                word_timestamps=None if payload.words is None else [w.model_dump() for w in payload.words],
+                sent_ms=payload.sent_ms,
             )
         except LLMServiceError as exc:
             raise HTTPException(
@@ -389,6 +414,7 @@ async def send_counselor_turn(
 @router.post("/{session_id}/end", response_model=EndSessionResponse)
 async def end_active_session(
     session_id: int,
+    payload: EndSessionRequest | None = None,
     user: dict[str, Any] = Depends(get_current_user),
     conn: asyncpg.Connection = Depends(get_db),
 ) -> Any:
@@ -413,7 +439,7 @@ async def end_active_session(
     # Tunggu Peran C terakhir: catatan topik akhir dipakai sesi lanjutan
     turn_lock = await _acquire_turn_lock_or_409(session_id)
     try:
-        updated = await end_session(conn, session_id)
+        updated = await end_session(conn, session_id, payload.ended_ms if payload else 0)
     finally:
         await turn_lock.release()
 

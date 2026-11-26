@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import time
 from typing import Any, Awaitable, Callable, Coroutine
 import asyncpg
 from core.config import get_settings
@@ -52,6 +53,7 @@ async def _save_turn_pair(
     start_ms: int,
     end_ms: int,
     word_timestamps: list[dict[str, Any]] | None = None,
+    reply_ms: int = 0,
 ) -> tuple[int, int, int]:
     """Persistensi atomik: turn konselor + turn klien + client_state_log.
 
@@ -76,8 +78,9 @@ async def _save_turn_pair(
             turn_no=cl_turn_no,
             speaker="client",
             content=client_reply,
-            start_ms=0,
-            end_ms=0,
+            # Posisi garis waktu saat jawaban siap; durasi suara klien tidak diketahui di sini.
+            start_ms=reply_ms,
+            end_ms=reply_ms,
         )
         state_id = await save_client_state(conn, session_id=session_id, turn_id=cl_turn_id, state=state)
     return cl_turn_no, cl_turn_id, state_id
@@ -218,6 +221,7 @@ async def process_turn(
     turn_lock: DbTurnLock | NullTurnLock | None = None,
     lock_wait_ms: float | None = None,
     word_timestamps: list[dict[str, Any]] | None = None,
+    sent_ms: int = 0,
 ) -> TurnResponse:
     """Memproses satu giliran. Mengambil alih turn_lock: lock selalu dilepas di sini,
     atau diserahkan ke tugas Peran C background yang melepasnya setelah selesai.
@@ -228,7 +232,7 @@ async def process_turn(
     succeeded = False
     try:
         response, handed_off = await _process_turn_locked(
-            conn, session, counselor_utterance, start_ms, end_ms, lock, lock_wait_ms, word_timestamps
+            conn, session, counselor_utterance, start_ms, end_ms, lock, lock_wait_ms, word_timestamps, sent_ms
         )
         succeeded = True
         return response
@@ -246,6 +250,7 @@ async def _process_turn_locked(
     turn_lock: DbTurnLock | NullTurnLock,
     lock_wait_ms: float | None = None,
     word_timestamps: list[dict[str, Any]] | None = None,
+    sent_ms: int = 0,
 ) -> tuple[TurnResponse, bool]:
     """Mengorkestrasi satu siklus giliran dialog konseling:
 
@@ -260,6 +265,13 @@ async def _process_turn_locked(
     Dipanggil sambil memegang lock giliran sesi. Mengembalikan (respons, lock_diserahkan).
     Durasi tiap tahap dicatat sebagai satu baris JSON per giliran (logger safesesi.timing).
     """
+    received = time.perf_counter()
+
+    def reply_ms() -> int:
+        """Posisi garis waktu sekarang: saat dikirim + antre lock + lama pemrosesan di server."""
+        processing = (time.perf_counter() - received) * 1000
+        return max(sent_ms, end_ms) + round((lock_wait_ms or 0) + processing)
+
     timings = TurnTimings()
     track_usage(timings.tokens)
     if lock_wait_ms is not None:
@@ -303,7 +315,8 @@ async def _process_turn_locked(
         with timings.stage("save"):
             # Salin state sebelumnya untuk giliran klien sapaan
             cl_turn_no, _, _ = await _save_turn_pair(
-                conn, session_id, counselor_utterance, client_reply, latest_state, start_ms, end_ms, word_timestamps
+                conn, session_id, counselor_utterance, client_reply, latest_state, start_ms, end_ms, word_timestamps,
+                reply_ms=reply_ms(),
             )
         timings.emit(session_id, cl_turn_no, path="greeting_shortcut")
 
@@ -380,6 +393,7 @@ async def _process_turn_locked(
             start_ms,
             end_ms,
             word_timestamps,
+            reply_ms=reply_ms(),
         )
 
     internal_st = new_state if settings.DEBUG_INCLUDE_INTERNAL else None

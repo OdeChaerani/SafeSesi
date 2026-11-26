@@ -238,6 +238,7 @@ class TestSessions(BaseTestCase):
                     "main_problem": "Kewalahan membagi tanggung jawab",
                     "attempt_status": "unattempted",
                     "total_attempts": 0,
+                    "completed_attempts": 0,
                     "last_completed_session_id": None,
                     "active_session_id": None,
                 }

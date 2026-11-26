@@ -131,6 +131,7 @@ class CatalogScenarioItem(PublicScenarioInfo):
 
     attempt_status: str  # 'unattempted' | 'attempted'
     total_attempts: int
+    completed_attempts: int  # sesi selesai milik pemanggil pada konteks ini
     last_completed_session_id: int | None = None
     active_session_id: int | None = None
 

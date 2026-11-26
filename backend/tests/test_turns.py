@@ -21,6 +21,9 @@ class TestTurns(BaseTestCase):
         self.mock_user = self.get_sample_user(user_id=10, role="student")
         self.mock_conn = self.create_mock_connection()
         self.mock_session = self.get_sample_session(session_id=100, student_id=10)
+        timeline = patch("api.sessions.get_timeline", AsyncMock(return_value={"end_ms": 0, "wall_ms": 10**9}))
+        timeline.start()
+        self.addCleanup(timeline.stop)
 
     def test_empty_content_validation(self):
         """Memastikan CreateTurnRequest menolak konten kosong atau hanya spasi."""

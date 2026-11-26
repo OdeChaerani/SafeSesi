@@ -109,6 +109,7 @@ class TestSplitPipeline(unittest.IsolatedAsyncioTestCase):
         patches = [
             patch("api.sessions.acquire_turn_lock", side_effect=self.locks.acquire),
             patch("api.sessions.get_session_by_id", AsyncMock(return_value=self.session)),
+            patch("api.sessions.get_timeline", AsyncMock(return_value={"end_ms": 0, "wall_ms": 10**9})),
             patch(
                 "api.sessions.end_session",
                 AsyncMock(side_effect=lambda *a: self.events.append("end_session") or {"id": self.session_id, "status": "completed", "duration_seconds": 60, "ended_at": "2026-11-15T10:00:00Z"}),

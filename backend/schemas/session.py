@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Literal
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from schemas.client_state import ClientState
 from schemas.scenario import PublicScenarioInfo
+
+_MAX_MS = 2_147_483_647  # kolom turns.start_ms/end_ms bertipe integer
 
 # Ekspresi wajah avatar klien (lihat services/simulation/expression.py).
 Expression = Literal["neutral", "happy", "sad", "anxious", "tense"]
@@ -53,9 +55,21 @@ class CreateTurnRequest(BaseModel):
     """Permintaan pengiriman giliran ucapan konselor."""
 
     content: str = Field(..., min_length=1, description="Teks ucapan konselor")
-    start_ms: int = Field(default=0, ge=0, description="Waktu awal bicara dalam milidetik")
-    end_ms: int = Field(default=0, ge=0, description="Waktu akhir bicara dalam milidetik")
-    words: list[WordTiming] | None = Field(default=None, description="Penanda waktu per kata (input suara)")
+    start_ms: int = Field(default=0, ge=0, le=_MAX_MS, description="Awal giliran pada garis waktu sesi (ms)")
+    end_ms: int = Field(default=0, ge=0, le=_MAX_MS, description="Akhir bicara (ms); giliran ketikan: sama dengan start_ms")
+    sent_ms: int = Field(default=0, ge=0, le=_MAX_MS, description="Posisi garis waktu saat giliran dikirim (ms)")
+    words: list[WordTiming] | None = Field(
+        default=None, description="Penanda waktu per kata. null = diketik; list (boleh kosong) = diucapkan"
+    )
+
+    @model_validator(mode="after")
+    def normalize_timing(self) -> "CreateTurnRequest":
+        if self.words is None:
+            self.end_ms = self.start_ms  # ketikan: tidak ada durasi bicara
+        elif self.end_ms < self.start_ms:
+            raise ValueError("Waktu akhir bicara tidak boleh lebih kecil dari waktu awal.")
+        self.sent_ms = max(self.sent_ms, self.end_ms)
+        return self
 
     @field_validator("content")
     @classmethod
@@ -79,6 +93,12 @@ class TurnResponse(BaseModel):
         default=None,
         description="State internal klien (HANYA dikembalikan jika DEBUG_INCLUDE_INTERNAL=true)",
     )
+
+
+class EndSessionRequest(BaseModel):
+    """Posisi garis waktu sesi saat diakhiri."""
+
+    ended_ms: int = Field(default=0, ge=0, le=_MAX_MS)
 
 
 class EndSessionResponse(BaseModel):

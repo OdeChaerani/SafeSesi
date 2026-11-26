@@ -32,7 +32,7 @@ def public_row(**kw: Any) -> dict[str, Any]:
         "id": 1, "title": "SS-NAD-01 Nadia Maharani", "change_target": "Membatasi tugas tambahan",
         "client_name": "Nadia Maharani", "client_age": 19, "client_gender": "Perempuan",
         "client_avatar_file": "girl1.glb", "client_role": "Mahasiswi", "initial_summary": "Nadia ingin berubah.",
-        "attempt_status": "unattempted", "total_attempts": 0, "last_completed_session_id": None,
+        "attempt_status": "unattempted", "total_attempts": 0, "completed_attempts": 0, "last_completed_session_id": None,
         "active_session_id": None, **kw,
     }
 
@@ -163,7 +163,7 @@ class TestScenarioBriefingEndpoint(BaseTestCase):
         self.assertEqual(
             set(res.json()),
             {"id", "title", "change_target", "client_name", "client_age", "client_gender", "client_avatar_file",
-             "client_role", "initial_summary", "attempt_status", "total_attempts", "last_completed_session_id",
+             "client_role", "initial_summary", "attempt_status", "total_attempts", "completed_attempts", "last_completed_session_id",
              "active_session_id"},
         )
         for key in HIDDEN_KEYS:

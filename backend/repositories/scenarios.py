@@ -97,6 +97,7 @@ async def fetch_public_scenarios(
             COALESCE(NULLIF(p.occupation, ''), NULLIF(p.education, ''), 'Klien Virtual') AS client_role,
             c.initial_summary,
             COUNT(se.id) AS total_attempts,
+            COUNT(se.id) FILTER (WHERE se.status = 'completed') AS completed_attempts,
             CASE WHEN COUNT(se.id) > 0 THEN 'attempted' ELSE 'unattempted' END AS attempt_status,
             MAX(se.id) FILTER (WHERE se.status = 'completed') AS last_completed_session_id,
             MAX(se.id) FILTER (WHERE se.status = 'in_progress') AS active_session_id

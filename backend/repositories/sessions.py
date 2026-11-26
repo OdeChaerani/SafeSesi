@@ -4,6 +4,8 @@ import json
 from typing import Any
 import asyncpg
 
+from repositories.turns import get_timeline
+
 
 async def create_session(
     conn: asyncpg.Connection,
@@ -59,18 +61,33 @@ async def get_session_by_id(conn: asyncpg.Connection, session_id: int) -> dict[s
     return res
 
 
-async def end_session(conn: asyncpg.Connection, session_id: int) -> dict[str, Any] | None:
-    """Mengakhiri sesi konseling: status='completed', ended_at=now(), hitung duration_seconds."""
+def active_duration_seconds(last_turn_end_ms: int, ended_ms: int, wall_ms: int) -> int:
+    """Durasi sesi = titik akhir garis waktu aktif, bukan ended_at - started_at.
+
+    ended_ms: posisi garis waktu saat sesi diakhiri (0 bila tidak dikirim). Dibatasi waktu nyata,
+    dan tidak pernah lebih pendek daripada akhir giliran terakhir.
+    """
+    return max(last_turn_end_ms, min(ended_ms, wall_ms)) // 1000
+
+
+async def end_session(conn: asyncpg.Connection, session_id: int, ended_ms: int = 0) -> dict[str, Any] | None:
+    """Mengakhiri sesi konseling: status='completed', ended_at=now(), simpan durasi garis waktu aktif.
+
+    Dipanggil sambil memegang lock giliran, jadi tidak ada giliran baru di antara baca dan tulis.
+    """
+    timeline = await get_timeline(conn, session_id)
+    duration = active_duration_seconds(timeline["end_ms"], ended_ms, timeline["wall_ms"])
     row = await conn.fetchrow(
         """
         UPDATE sessions
         SET status = 'completed',
             ended_at = now(),
-            duration_seconds = GREATEST(0, EXTRACT(EPOCH FROM (now() - started_at))::integer)
+            duration_seconds = $2
         WHERE id = $1 AND status = 'in_progress'
         RETURNING id, student_id, scenario_id, class_id, parent_session_id, scenario_snapshot, status, started_at, ended_at, duration_seconds
         """,
         session_id,
+        duration,
     )
     if not row:
         return None
@@ -78,7 +95,6 @@ async def end_session(conn: asyncpg.Connection, session_id: int) -> dict[str, An
     if isinstance(res["scenario_snapshot"], str):
         res["scenario_snapshot"] = json.loads(res["scenario_snapshot"])
     return res
-
 
 
 # Status evaluasi terbaru sebuah sesi (LATERAL: aman bila suatu saat ada lebih dari satu baris).
@@ -96,6 +112,7 @@ async def list_student_sessions(
     *,
     kind: str = "all",
     scenario_id: int | None = None,
+    status: str | None = None,
     limit: int = 100,
 ) -> dict[str, Any]:
     """Riwayat sesi milik mahasiswa (terbaru dulu) beserta hitungan untuk ringkasan beranda.
@@ -112,6 +129,9 @@ async def list_student_sessions(
     if scenario_id is not None:
         args.append(scenario_id)
         conditions.append(f"s.scenario_id = ${len(args)}")
+    if status is not None:
+        args.append(status)
+        conditions.append(f"s.status::text = ${len(args)}")
     args.append(limit)
 
     rows = await conn.fetch(

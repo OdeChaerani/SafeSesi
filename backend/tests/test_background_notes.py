@@ -97,13 +97,14 @@ class TestBackgroundNotesOrdering(unittest.IsolatedAsyncioTestCase):
         async def fake_role_b(**kwargs: Any) -> str:
             return "Iya, begitu Kak."
 
-        async def fake_end_session(conn: Any, session_id: int) -> dict[str, Any]:
+        async def fake_end_session(conn: Any, session_id: int, ended_ms: int) -> dict[str, Any]:
             self.events.append("end_session")
             return {"id": session_id, "status": "completed", "duration_seconds": 60, "ended_at": "2026-11-12T10:00:00Z"}
 
         patches = [
             patch("api.sessions.acquire_turn_lock", side_effect=self.locks.acquire),
             patch("api.sessions.get_session_by_id", AsyncMock(return_value=self.session)),
+            patch("api.sessions.get_timeline", AsyncMock(return_value={"end_ms": 0, "wall_ms": 10**9})),
             patch("api.sessions.end_session", side_effect=fake_end_session),
             patch("services.simulation.orchestrator.get_settings", return_value=settings),
             patch("services.simulation.orchestrator.get_latest_client_state", AsyncMock(return_value=None)),

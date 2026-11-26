@@ -261,6 +261,7 @@ class TestStateUpdaterDisclosureFloor(BaseTestCase):
         mock_logger.warning.assert_not_called()
 
 
+@patch("api.sessions.get_timeline", AsyncMock(return_value={"end_ms": 0, "wall_ms": 10**9}))
 class TestFirstTurnMediumScenario(BaseTestCase):
     """Skenario dengan disclosure awal 'medium' (Bu Rina) tidak membocorkan fakta 'high' di giliran pertama."""
 
@@ -346,6 +347,7 @@ class TestPublicResponses(BaseTestCase):
                 "client_role": "Karyawan dan ibu",
                 "initial_summary": rina_snapshot()["case"]["initial_summary"],
                 "total_attempts": 0,
+                "completed_attempts": 0,
                 "attempt_status": "unattempted",
                 "last_completed_session_id": None,
                 "active_session_id": None,
