@@ -18,6 +18,10 @@ class CreateSessionRequest(BaseModel):
     class_id: int | None = Field(default=None, description="ID kelas jika latihan kelas (NULL untuk latihan mandiri)")
     mode: Literal["new", "repeat", "continue"] = Field(default="new", description="Mode latihan: new | repeat | continue")
     parent_session_id: int | None = Field(default=None, description="ID sesi sebelumnya jika mode continue")
+    repeat_of_session_id: int | None = Field(
+        default=None,
+        description="ID sesi yang diulang (mode repeat): menentukan class_id; tidak disimpan sebagai parent",
+    )
 
 
 class SessionResponse(BaseModel):

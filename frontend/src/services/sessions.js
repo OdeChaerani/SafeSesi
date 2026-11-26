@@ -4,6 +4,9 @@ import { postJson, request } from './api'
 /** POST /sessions. data = { scenario_id, mode, parent_session_id, class_id } */
 export const createSession = (data) => postJson('/sessions', data)
 
+/** GET /sessions?limit=n: riwayat milik sendiri (terbaru dulu) beserta hitungan ringkasan. */
+export const listSessions = ({ limit }) => request(`/sessions?limit=${limit}`)
+
 /** GET /sessions/{id}: ringkasan publik skenario dan transkrip. */
 export const getSession = (sessionId) => request(`/sessions/${sessionId}`)
 

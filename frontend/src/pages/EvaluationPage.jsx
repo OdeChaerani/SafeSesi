@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
+import CountUp from '../components/ui/CountUp'
 import { getEvaluation, requestEvaluation } from '../services/evaluations'
 import { getSession } from '../services/sessions'
 
@@ -61,26 +62,6 @@ const num = (v) => v.toLocaleString('id-ID', { maximumFractionDigits: 2 })
 const minutes = (s) => (s == null ? '-' : s < 60 ? `${s} detik` : `${Math.round(s / 60)} menit`)
 
 // --- Komponen kecil -----------------------------------------------------------------------
-
-const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-
-// Angka dihitung naik dari 0 saat pertama tampil.
-function CountUp({ value, format = num, duration = 700 }) {
-  const [shown, setShown] = useState(() => (reducedMotion() ? value : 0))
-  const frame = useRef(0)
-  useEffect(() => {
-    if (reducedMotion()) return undefined
-    const start = performance.now()
-    const tick = (now) => {
-      const t = Math.min(1, (now - start) / duration)
-      setShown(value * (1 - (1 - t) ** 3))
-      if (t < 1) frame.current = requestAnimationFrame(tick)
-    }
-    frame.current = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(frame.current)
-  }, [value, duration])
-  return format(Number.isInteger(value) ? Math.round(shown) : Math.round(shown * 100) / 100)
-}
 
 function Card({ title, icon, action, children, className = '' }) {
   return (

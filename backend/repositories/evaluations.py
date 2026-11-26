@@ -195,7 +195,14 @@ async def lecturer_manages_session(conn: asyncpg.Connection, session_id: int, le
     """Dosen hanya boleh melihat sesi kelas yang dikelolanya (view v_sessions_for_lecturer)."""
     return bool(
         await conn.fetchval(
-            "SELECT EXISTS (SELECT 1 FROM v_sessions_for_lecturer WHERE id = $1 AND lecturer_id = $2)",
+            # View belum menyaring classes.deleted_at, jadi disaring di sini.
+            """
+            SELECT EXISTS (
+                SELECT 1 FROM v_sessions_for_lecturer v
+                JOIN classes c ON c.id = v.class_id AND c.deleted_at IS NULL
+                WHERE v.id = $1 AND v.lecturer_id = $2
+            )
+            """,
             session_id,
             lecturer_id,
         )

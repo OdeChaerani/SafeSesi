@@ -17,28 +17,6 @@ async def get_user_by_id(conn: asyncpg.Connection, user_id: int) -> dict[str, An
     return dict(row) if row else None
 
 
-async def list_user_classes(conn: asyncpg.Connection, user_id: int) -> list[dict[str, Any]]:
-    """Kelas aktif tempat pengguna terdaftar (mahasiswa: diikuti; dosen: dikelola) beserta nama dosennya.
-
-    Dosen pengelola = anggota kelas ber-role lecturer, sama dengan view v_sessions_for_lecturer.
-    """
-    rows = await conn.fetch(
-        """
-        SELECT c.id, c.name, c.academic_year,
-               COALESCE(array_agg(l.name ORDER BY l.name) FILTER (WHERE l.id IS NOT NULL), '{}') AS lecturers
-        FROM class_members cm
-        JOIN classes c ON c.id = cm.class_id AND c.deleted_at IS NULL
-        LEFT JOIN class_members lm ON lm.class_id = c.id AND lm.deleted_at IS NULL
-        LEFT JOIN users l ON l.id = lm.user_id AND l.role = 'lecturer' AND l.deleted_at IS NULL
-        WHERE cm.user_id = $1 AND cm.deleted_at IS NULL
-        GROUP BY c.id, c.name, c.academic_year
-        ORDER BY c.academic_year DESC, c.name
-        """,
-        user_id,
-    )
-    return [dict(row) for row in rows]
-
-
 # Status akun diturunkan (bukan kolom): punya password = aktif; kalau belum, tergantung masa token aktivasi.
 ACCOUNT_STATUS_SQL = """CASE
     WHEN u.password_hash IS NOT NULL THEN 'aktif'

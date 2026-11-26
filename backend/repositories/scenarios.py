@@ -54,52 +54,84 @@ async def validate_catalog_access(conn: asyncpg.Connection, scenario_id: int) ->
     return row is not None
 
 
+async def fetch_public_scenarios(
+    conn: asyncpg.Connection,
+    student_id: int,
+    *,
+    class_id: int | None = None,
+    scenario_id: int | None = None,
+    catalog_only: bool = False,
+) -> list[dict[str, Any]]:
+    """Ringkasan PUBLIK skenario (judul, target perubahan, identitas dasar klien, ringkasan awal)
+    beserta status percobaan mahasiswa. Tidak pernah memilih persona lengkap, isi kasus, hidden
+    facts, atau kondisi awal klien.
+
+    Cakupan percobaan: tanpa class_id = hanya sesi mandiri (class_id NULL); dengan class_id = hanya
+    sesi di kelas itu, dan skenario harus ditetapkan untuk kelas tersebut (class_scenarios).
+    Potongan SQL di bawah tetap; semua nilai masuk lewat parameter.
+    """
+    args: list[Any] = [student_id]
+    class_join = ""
+    session_scope = "se.class_id IS NULL"
+    conditions = ["sc.deleted_at IS NULL"]
+    if class_id is not None:
+        args.append(class_id)
+        class_join = f"JOIN class_scenarios cs ON cs.scenario_id = sc.id AND cs.class_id = ${len(args)}"
+        session_scope = f"se.class_id = ${len(args)}"
+    if catalog_only:
+        conditions.append("sc.visibility = 'catalog'")
+    if scenario_id is not None:
+        args.append(scenario_id)
+        conditions.append(f"sc.id = ${len(args)}")
+
+    rows = await conn.fetch(
+        f"""
+        SELECT
+            sc.id,
+            sc.title,
+            sc.change_target,
+            p.name AS client_name,
+            p.age AS client_age,
+            p.gender AS client_gender,
+            p.avatar_file AS client_avatar_file,
+            COALESCE(NULLIF(p.occupation, ''), NULLIF(p.education, ''), 'Klien Virtual') AS client_role,
+            c.initial_summary,
+            COUNT(se.id) AS total_attempts,
+            CASE WHEN COUNT(se.id) > 0 THEN 'attempted' ELSE 'unattempted' END AS attempt_status,
+            MAX(se.id) FILTER (WHERE se.status = 'completed') AS last_completed_session_id,
+            MAX(se.id) FILTER (WHERE se.status = 'in_progress') AS active_session_id
+        FROM scenarios sc
+        JOIN scenario_personas p ON p.scenario_id = sc.id
+        JOIN scenario_cases c ON c.scenario_id = sc.id
+        {class_join}
+        LEFT JOIN sessions se
+            ON se.scenario_id = sc.id AND se.student_id = $1 AND se.deleted_at IS NULL AND {session_scope}
+        WHERE {" AND ".join(conditions)}
+        GROUP BY sc.id, p.name, p.age, p.gender, p.avatar_file, p.occupation, p.education, c.initial_summary
+        ORDER BY sc.id ASC
+        """,
+        *args,
+    )
+    return [dict(r) for r in rows]
+
+
 async def get_catalog_scenarios(
     conn: asyncpg.Connection,
     student_id: int,
     search: str | None = None,
     status_filter: str = "all",
 ) -> dict[str, Any]:
-    """Mengambil katalog skenario latihan mandiri beserta status latihan mahasiswa."""
+    """Katalog skenario umum (visibility 'catalog') untuk latihan mandiri.
+
+    Skenario khusus kelas tidak pernah muncul di sini. Status percobaan hanya menghitung sesi
+    mandiri, supaya "Lanjutkan" dari katalog tidak tanpa sengaja memakai sesi kelas sebagai induk.
+    """
     clean_search = search.strip() if search and search.strip() else None
-
-    # 1. Ambil seluruh data katalog dasar untuk mahasiswa ini (termasuk status)
-    rows = await conn.fetch(
-        """
-        WITH scenario_stats AS (
-            SELECT 
-                sc.id,
-                sc.title,
-                sc.change_target,
-                p.name AS client_name,
-                p.age AS client_age,
-                p.gender AS client_gender,
-                p.avatar_file AS client_avatar_file,
-                COALESCE(NULLIF(p.occupation, ''), NULLIF(p.education, ''), 'Klien Virtual') AS client_role,
-                c.initial_summary,
-                COUNT(se.id) AS total_attempts,
-                CASE WHEN COUNT(se.id) > 0 THEN 'attempted' ELSE 'unattempted' END AS attempt_status,
-                MAX(se.id) FILTER (WHERE se.status = 'completed') AS last_completed_session_id,
-                MAX(se.id) FILTER (WHERE se.status = 'in_progress') AS active_session_id
-            FROM scenarios sc
-            JOIN scenario_personas p ON p.scenario_id = sc.id
-            JOIN scenario_cases c ON c.scenario_id = sc.id
-            LEFT JOIN sessions se ON se.scenario_id = sc.id AND se.student_id = $1
-            WHERE sc.visibility = 'catalog' AND sc.deleted_at IS NULL
-            GROUP BY sc.id, p.name, p.age, p.gender, p.avatar_file, p.occupation, p.education, c.initial_summary
-            ORDER BY sc.id ASC
-        )
-        SELECT * FROM scenario_stats
-        """,
-        student_id,
-    )
-
-    all_items = [dict(r) for r in rows]
+    all_items = await fetch_public_scenarios(conn, student_id, catalog_only=True)
     total_count = len(all_items)
     unattempted_count = sum(1 for item in all_items if item["attempt_status"] == "unattempted")
     attempted_count = sum(1 for item in all_items if item["attempt_status"] == "attempted")
 
-    # 2. Filter berdasarkan search & status jika diminta
     filtered_items = all_items
     if clean_search:
         search_lower = clean_search.lower()
@@ -112,10 +144,7 @@ async def get_catalog_scenarios(
         ]
 
     if status_filter in ("unattempted", "attempted"):
-        filtered_items = [
-            item for item in filtered_items
-            if item["attempt_status"] == status_filter
-        ]
+        filtered_items = [item for item in filtered_items if item["attempt_status"] == status_filter]
 
     return {
         "items": filtered_items,
@@ -128,18 +157,17 @@ async def get_catalog_scenarios(
 async def validate_class_access(
     conn: asyncpg.Connection, scenario_id: int, class_id: int, student_id: int
 ) -> bool:
-    """Validasi apakah skenario ditugaskan pada kelas dan mahasiswa terdaftar di kelas tersebut."""
+    """Validasi: mahasiswa anggota AKTIF kelas itu dan skenario ditetapkan untuk kelas tersebut."""
     row = await conn.fetchrow(
         """
         SELECT 1
         FROM class_scenarios cs
-        JOIN class_members cm ON cm.class_id = cs.class_id
+        JOIN class_members cm ON cm.class_id = cs.class_id AND cm.deleted_at IS NULL
         JOIN classes cl ON cl.id = cs.class_id
         JOIN scenarios sc ON sc.id = cs.scenario_id
         WHERE cs.scenario_id = $1
           AND cs.class_id = $2
           AND cm.user_id = $3
-          AND cm.deleted_at IS NULL
           AND cl.deleted_at IS NULL
           AND sc.deleted_at IS NULL
         """,
@@ -148,4 +176,3 @@ async def validate_class_access(
         student_id,
     )
     return row is not None
-
