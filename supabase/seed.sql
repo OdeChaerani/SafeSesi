@@ -48,11 +48,11 @@ BEGIN
     -- =================================================================
     -- 2. SKENARIO 1: Nadia Maharani (SS-NAD-01), sesuai Ilustrasi final
     -- =================================================================
-    SELECT id INTO v_nadia_id FROM public.scenarios WHERE title = 'SS-NAD-01 Nadia Maharani';
+    SELECT id INTO v_nadia_id FROM public.scenarios WHERE title = 'Kewalahan membagi waktu';
     IF v_nadia_id IS NULL THEN
         INSERT INTO public.scenarios (title, owner_id, visibility, review_status, change_target)
         VALUES (
-            'SS-NAD-01 Nadia Maharani',
+            'Kewalahan membagi waktu',
             v_owner_id,
             'catalog'::public.scenario_visibility,
             'draft'::public.review_status,
@@ -117,11 +117,11 @@ BEGIN
     -- =================================================================
     -- 3. SKENARIO 2: Hendra Saputra (Pak Hendra) (SS-HEN-01), sesuai Ilustrasi final
     -- =================================================================
-    SELECT id INTO v_hendra_id FROM public.scenarios WHERE title = 'SS-HEN-01 Hendra Saputra';
+    SELECT id INTO v_hendra_id FROM public.scenarios WHERE title = 'Diminta berhenti merokok';
     IF v_hendra_id IS NULL THEN
         INSERT INTO public.scenarios (title, owner_id, visibility, review_status, change_target)
         VALUES (
-            'SS-HEN-01 Hendra Saputra',
+            'Diminta berhenti merokok',
             v_owner_id,
             'catalog'::public.scenario_visibility,
             'draft'::public.review_status,
@@ -135,7 +135,7 @@ BEGIN
         ) VALUES (
             v_hendra_id,
             'Hendra Saputra (Pak Hendra)',
-            40,
+            27,
             'Laki-laki',
             'Lulusan SMK jurusan otomotif; detail riwayat sekolah tidak menjadi fokus skenario.',
             'Pemilik bengkel motor kecil.',
@@ -155,7 +155,7 @@ BEGIN
             'Pak Hendra merokok sekitar dua bungkus per hari sejak masa SMK. Ia mengakui rokok makin mahal, bajunya sering bolong terkena bara, dan rasanya tidak seenak dulu. Perdebatan dengan istri membuatnya merasa dinasihati dan dikontrol.',
             'Harapan awal: belum meminta rencana berhenti; ingin diperlakukan sebagai orang yang memutuskan sendiri. Konteks perubahan perilaku: mengurangi atau menghentikan kebiasaan merokok.',
             NULL,
-            'Pak Hendra, 40 tahun, pemilik bengkel motor kecil. Ia datang karena istrinya meminta ia berhenti merokok, dan ia belum tentu ingin berubah. Arah latihan: bantu Pak Hendra memperjelas pandangannya tentang kebiasaan merokok dan, bila ia mau, cara mengurangi atau menghentikannya.'
+            'Pak Hendra, 27 tahun, pemilik bengkel motor kecil. Ia datang karena istrinya meminta ia berhenti merokok, dan ia belum tentu ingin berubah. Arah latihan: bantu Pak Hendra memperjelas pandangannya tentang kebiasaan merokok dan, bila ia mau, cara mengurangi atau menghentikannya.'
         );
 
         INSERT INTO public.scenario_hidden_facts (scenario_id, code, short_title, fact, sort_order, min_disclosure_level)
@@ -185,11 +185,11 @@ BEGIN
     -- =================================================================
     -- 4. SKENARIO 3: Rina Kusumawati (SS-RIN-01), sesuai Ilustrasi final
     -- =================================================================
-    SELECT id INTO v_rina_id FROM public.scenarios WHERE title = 'SS-RIN-01 Rina Kusumawati';
+    SELECT id INTO v_rina_id FROM public.scenarios WHERE title = 'Sulit rutin bergerak';
     IF v_rina_id IS NULL THEN
         INSERT INTO public.scenarios (title, owner_id, visibility, review_status, change_target)
         VALUES (
-            'SS-RIN-01 Rina Kusumawati',
+            'Sulit rutin bergerak',
             v_owner_id,
             'catalog'::public.scenario_visibility,
             'draft'::public.review_status,
@@ -253,11 +253,11 @@ BEGIN
     -- =================================================================
     -- 5. SKENARIO 4: Sari Wulandari (SS-SAR-01), sesuai Ilustrasi final
     -- =================================================================
-    SELECT id INTO v_sari_id FROM public.scenarios WHERE title = 'SS-SAR-01 Sari Wulandari';
+    SELECT id INTO v_sari_id FROM public.scenarios WHERE title = 'Ragu melanjutkan kuliah';
     IF v_sari_id IS NULL THEN
         INSERT INTO public.scenarios (title, owner_id, visibility, review_status, change_target)
         VALUES (
-            'SS-SAR-01 Sari Wulandari',
+            'Ragu melanjutkan kuliah',
             v_owner_id,
             'catalog'::public.scenario_visibility,
             'draft'::public.review_status,
@@ -408,10 +408,10 @@ BEGIN
     -- tidak pernah muncul di katalog umum. Kelas lain dipakai untuk menguji akses ditolak.
     -- =================================================================
     SELECT id INTO v_kls_id FROM public.scenarios
-    WHERE title = 'SS-KLS-01 Rina Kusumawati (Kelas Uji, DEV)' AND deleted_at IS NULL;
+    WHERE title = 'Sulit rutin bergerak (Kelas Uji, DEV)' AND deleted_at IS NULL;
     IF v_kls_id IS NULL THEN
         INSERT INTO public.scenarios (title, owner_id, visibility, review_status, change_target)
-        SELECT 'SS-KLS-01 Rina Kusumawati (Kelas Uji, DEV)', owner_id, 'class'::public.scenario_visibility,
+        SELECT 'Sulit rutin bergerak (Kelas Uji, DEV)', owner_id, 'class'::public.scenario_visibility,
                review_status, change_target
         FROM public.scenarios WHERE id = v_rina_id
         RETURNING id INTO v_kls_id;
