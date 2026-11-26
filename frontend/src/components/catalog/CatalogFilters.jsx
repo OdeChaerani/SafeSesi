@@ -1,59 +1,45 @@
-export default function CatalogFilters({
-  searchQuery,
-  onSearchChange,
-  statusFilter,
-  onStatusChange,
-  totalCount = 0,
-  unattemptedCount = 0,
-  attemptedCount = 0,
-  displayedCount = 0,
-}) {
+const controlClass =
+  'h-9 bg-slate-50 text-[#1e1a34] text-xs rounded-lg border border-slate-300 outline-none transition focus:bg-white focus:border-[#352f55] focus:ring-2 focus:ring-[#352f55]/40'
+
+const STATUS_OPTIONS = [
+  { value: 'all', label: 'Semua status', count: 'total' },
+  { value: 'unattempted', label: 'Belum dicoba', count: 'unattempted_count' },
+  { value: 'attempted', label: 'Pernah dicoba', count: 'attempted_count' },
+]
+
+/** counts = respons katalog terakhir (undefined sebelum data pertama datang; angka tidak ditampilkan). */
+export default function CatalogFilters({ search, onSearch, status, onStatus, counts, shown, isPending }) {
   return (
-    <div className="flex flex-wrap items-center gap-3 justify-between bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs">
-      <div className="flex flex-wrap items-center gap-3 flex-1 min-w-0">
-        {/* Input Pencarian */}
-        <div className="relative flex-1 min-w-[240px] max-w-md">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
-            search
-          </span>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Cari judul skenario atau kata kunci..."
-            className="w-full h-10 pl-9 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs md:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-[#352f55] transition-all"
-          />
-        </div>
-
-        {/* Dropdown Status */}
-        <div className="relative shrink-0">
-          <select
-            value={statusFilter}
-            onChange={(e) => onStatusChange(e.target.value)}
-            className="h-10 pl-3 pr-8 bg-slate-50 text-slate-900 text-xs md:text-sm font-medium rounded-xl border border-slate-200 focus:outline-none focus:bg-white focus:border-[#352f55] transition-all appearance-none cursor-pointer"
-          >
-            <option value="all">Semua Status ({totalCount})</option>
-            <option value="unattempted">
-              Belum Dicoba ({unattemptedCount})
-            </option>
-            <option value="attempted">
-              Sudah Dicoba ({attemptedCount})
-            </option>
-          </select>
-          <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[18px] pointer-events-none">
-            expand_more
-          </span>
-        </div>
+    <div role="search" className="flex flex-col sm:flex-row sm:items-center gap-2 bg-white p-3 rounded-xl border border-slate-100 shadow-xs">
+      <div className="relative flex-1 sm:max-w-md">
+        <label htmlFor="cari-skenario" className="sr-only">Cari skenario</label>
+        <span className="material-symbols-outlined absolute left-2.5 top-2 text-[18px] text-slate-500" aria-hidden="true">search</span>
+        <input
+          id="cari-skenario"
+          type="search"
+          value={search}
+          onChange={(e) => onSearch(e.target.value)}
+          maxLength={100}
+          placeholder="Cari judul, nama klien, atau kata kunci"
+          className={`${controlClass} w-full pl-9 pr-9`}
+        />
+        {isPending && <span className="ss-spinner absolute right-3 top-2.5 text-[#352f55]" aria-hidden="true" />}
       </div>
 
-      {/* Counter Skenario */}
-      <div className="flex items-center gap-1.5 px-3 py-1.5 text-slate-500 text-xs font-medium shrink-0">
-        <span className="material-symbols-outlined text-[16px]">dataset</span>
-        <span>
-          Menampilkan {displayedCount} dari {totalCount} skenario
-        </span>
-      </div>
+      <label htmlFor="saring-status" className="sr-only">Saring menurut status</label>
+      <select id="saring-status" value={status} onChange={(e) => onStatus(e.target.value)} className={`${controlClass} px-2.5 cursor-pointer`}>
+        {STATUS_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+            {counts ? ` (${counts[option.count]})` : ''}
+          </option>
+        ))}
+      </select>
+
+      {/* Wadah selalu ada agar perubahan jumlah dibacakan pembaca layar. */}
+      <p aria-live="polite" className="sm:ml-auto min-h-4 text-[11px] text-slate-600">
+        {counts && !isPending ? `Menampilkan ${shown} dari ${counts.total} skenario` : ''}
+      </p>
     </div>
   )
 }
-

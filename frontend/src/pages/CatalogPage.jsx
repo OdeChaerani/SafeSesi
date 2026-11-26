@@ -1,117 +1,98 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AcademicGuidanceBanner from '../components/catalog/AcademicGuidanceBanner'
 import CatalogFilters from '../components/catalog/CatalogFilters'
-import CatalogHeader from '../components/catalog/CatalogHeader'
-import ScenarioGrid from '../components/catalog/ScenarioGrid'
-import { FALLBACK_SCENARIOS } from '../data/fallbackScenarios'
+import ScenarioGrid, { ScenarioGridSkeleton } from '../components/catalog/ScenarioGrid'
+import { EmptyState, ErrorState } from '../components/dashboard/SectionState'
+import Button from '../components/ui/Button'
+import { useRequest } from '../hooks/useRequest'
 import { getCatalog } from '../services/scenarios'
 
-export default function CatalogPage({ onStartExercise }) {
+const SEARCH_DELAY_MS = 300
+
+// Katalog latihan mandiri. Hanya menampilkan data dari API; tidak ada data cadangan.
+export default function CatalogPage() {
   const navigate = useNavigate()
-  const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [scenarios, setScenarios] = useState([])
+  const [searchText, setSearchText] = useState('')
+  const [search, setSearch] = useState('') // teks yang sudah dikirim ke API
+  const [status, setStatus] = useState('all')
+  const timer = useRef(null)
 
-  const handleStartExercise = (activity) => {
-    if (onStartExercise) {
-      onStartExercise(activity)
-    } else {
-      const scenarioId = activity.scenarioId || activity.id || 1
-      navigate(`/latihan-mandiri/${scenarioId}/briefing`, {
-        state: { scenario: activity },
-      })
-    }
+  useEffect(() => () => clearTimeout(timer.current), [])
+
+  const load = useCallback(() => getCatalog({ search, status }), [search, status])
+  const { data, error, isLoading, reload } = useRequest(load)
+  const isPending = isLoading || searchText.trim() !== search
+
+  const onSearch = (value) => {
+    setSearchText(value)
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => setSearch(value.trim()), SEARCH_DELAY_MS)
   }
-  const [meta, setMeta] = useState({
-    total: 3,
-    unattempted_count: 2,
-    attempted_count: 1,
-  })
-  const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    let isMounted = true
-    const fetchCatalog = async () => {
-      setIsLoading(true)
-      try {
-        const data = await getCatalog({ search: searchQuery, status: statusFilter })
+  const clearFilters = () => {
+    clearTimeout(timer.current)
+    setSearchText('')
+    setSearch('')
+    setStatus('all')
+  }
 
-        if (isMounted) {
-          setScenarios(data.items || [])
-          setMeta({
-            total: data.total || 0,
-            unattempted_count: data.unattempted_count || 0,
-            attempted_count: data.attempted_count || 0,
-          })
-        }
-      } catch (err) {
-        // Fallback anggun ke skenario seed lokal jika backend offline
-        if (isMounted) {
-          let filtered = FALLBACK_SCENARIOS
-          if (searchQuery.trim()) {
-            const q = searchQuery.toLowerCase()
-            filtered = filtered.filter(
-              (s) =>
-                s.title.toLowerCase().includes(q) ||
-                s.client_name.toLowerCase().includes(q) ||
-                s.main_problem.toLowerCase().includes(q)
-            )
-          }
-          if (statusFilter !== 'all') {
-            filtered = filtered.filter((s) => s.attempt_status === statusFilter)
-          }
-          setScenarios(filtered)
-          setMeta({
-            total: FALLBACK_SCENARIOS.length,
-            unattempted_count: FALLBACK_SCENARIOS.filter(
-              (s) => s.attempt_status === 'unattempted'
-            ).length,
-            attempted_count: FALLBACK_SCENARIOS.filter(
-              (s) => s.attempt_status === 'attempted'
-            ).length,
-          })
-        }
-      } finally {
-        if (isMounted) setIsLoading(false)
-      }
-    }
-
-    // Debounce pencarian 300ms agar efisien
-    const timer = setTimeout(fetchCatalog, 300)
-    return () => {
-      isMounted = false
-      clearTimeout(timer)
-    }
-  }, [searchQuery, statusFilter])
+  let content
+  if (data === undefined) {
+    content = error ? null : <ScenarioGridSkeleton />
+  } else if (data.total === 0) {
+    content = (
+      <EmptyState icon="library_books" title="Belum ada skenario">
+        Skenario latihan mandiri akan muncul di sini setelah tersedia di katalog.
+      </EmptyState>
+    )
+  } else if (data.items.length === 0) {
+    content = isPending ? (
+      <ScenarioGridSkeleton />
+    ) : (
+      !error && (
+        <EmptyState
+          icon="search_off"
+          title="Tidak ada skenario yang cocok"
+          action={<Button size="sm" className="min-h-9 mt-1" onClick={clearFilters}>Hapus saringan</Button>}
+        >
+          Coba kata kunci lain atau ganti status.
+        </EmptyState>
+      )
+    )
+  } else {
+    content = (
+      <ScenarioGrid scenarios={data.items} isStale={isPending} onStart={(id) => navigate(`/latihan-mandiri/${id}/briefing`)} />
+    )
+  }
 
   return (
-    <div className="flex flex-col gap-6 w-full">
-      {/* 1. Header & Breadcrumb */}
-      <CatalogHeader />
+    <div className="flex flex-col gap-3 w-full">
+      <header className="text-white">
+        <h1 className="text-lg md:text-xl font-bold tracking-tight">Latihan Mandiri</h1>
+        <p className="text-xs text-[#d3daea]">Pilih skenario percakapan dengan klien virtual.</p>
+      </header>
 
-      {/* 2. Kotak Filter, Pencarian, & Counter */}
       <CatalogFilters
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        statusFilter={statusFilter}
-        onStatusChange={setStatusFilter}
-        totalCount={meta.total}
-        unattemptedCount={meta.unattempted_count}
-        attemptedCount={meta.attempted_count}
-        displayedCount={scenarios.length}
+        search={searchText}
+        onSearch={onSearch}
+        status={status}
+        onStatus={setStatus}
+        counts={data}
+        shown={data?.items.length}
+        isPending={isPending && (data !== undefined || !error)}
       />
 
-      {/* 3. Grid Kartu Skenario */}
-      <ScenarioGrid
-        scenarios={scenarios}
-        onStartExercise={handleStartExercise}
-        isLoading={isLoading}
-      />
+      {error && (
+        <ErrorState
+          message={`Katalog belum bisa dimuat. ${error.message}${data ? ' Yang tampil adalah hasil sebelumnya.' : ''}`}
+          onRetry={reload}
+        />
+      )}
 
-      {/* 4. Banner Panduan Akademik */}
+      {content}
+
       <AcademicGuidanceBanner />
     </div>
   )
 }
-
