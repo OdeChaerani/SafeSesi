@@ -6,6 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from schemas.student import ClassSummary
+
 
 class StudentProfile(BaseModel):
     npm: str | None
@@ -14,13 +16,6 @@ class StudentProfile(BaseModel):
 
 class LecturerProfile(BaseModel):
     nip: str
-
-
-class ClassSummary(BaseModel):
-    id: int
-    name: str
-    academic_year: str
-    lecturers: list[str]
 
 
 class _MeBase(BaseModel):

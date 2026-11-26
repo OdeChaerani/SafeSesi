@@ -36,8 +36,8 @@ from repositories.auth import (
     revoke_refresh_family,
     set_password_hash,
 )
+from repositories.classes import list_user_classes
 from repositories.profiles import get_profile
-from repositories.users import list_user_classes
 from schemas.auth import ActivateRequest, ChangePasswordRequest, LoginRequest, TokenResponse
 from schemas.profile import AdminMe, LecturerMe, StudentMe
 

@@ -42,12 +42,12 @@ async def create_session(
 
 
 async def get_session_by_id(conn: asyncpg.Connection, session_id: int) -> dict[str, Any] | None:
-    """Mengambil data sesi berdasarkan ID."""
+    """Mengambil sesi yang belum dihapus berdasarkan ID."""
     row = await conn.fetchrow(
         """
         SELECT id, student_id, scenario_id, class_id, parent_session_id, scenario_snapshot, status, started_at, ended_at, duration_seconds
         FROM sessions
-        WHERE id = $1
+        WHERE id = $1 AND deleted_at IS NULL
         """,
         session_id,
     )
@@ -79,3 +79,82 @@ async def end_session(conn: asyncpg.Connection, session_id: int) -> dict[str, An
         res["scenario_snapshot"] = json.loads(res["scenario_snapshot"])
     return res
 
+
+
+# Status evaluasi terbaru sebuah sesi (LATERAL: aman bila suatu saat ada lebih dari satu baris).
+_LATEST_EVALUATION = """
+    LEFT JOIN LATERAL (
+        SELECT e.status::text AS status FROM evaluations e
+        WHERE e.session_id = s.id ORDER BY e.id DESC LIMIT 1
+    ) ev ON TRUE
+"""
+
+
+async def list_student_sessions(
+    conn: asyncpg.Connection,
+    student_id: int,
+    *,
+    kind: str = "all",
+    scenario_id: int | None = None,
+    limit: int = 100,
+) -> dict[str, Any]:
+    """Riwayat sesi milik mahasiswa (terbaru dulu) beserta hitungan untuk ringkasan beranda.
+
+    Hanya field publik yang diambil dari snapshot (judul skenario dan nama klien); persona lengkap,
+    kasus, hidden facts, dan kondisi klien tidak ikut dibaca.
+    """
+    args: list[Any] = [student_id]
+    conditions = ["s.student_id = $1", "s.deleted_at IS NULL"]
+    if kind == "independent":
+        conditions.append("s.class_id IS NULL")
+    elif kind == "class":
+        conditions.append("s.class_id IS NOT NULL")
+    if scenario_id is not None:
+        args.append(scenario_id)
+        conditions.append(f"s.scenario_id = ${len(args)}")
+    args.append(limit)
+
+    rows = await conn.fetch(
+        f"""
+        SELECT s.id, s.scenario_id, s.class_id, s.parent_session_id, s.status::text AS status,
+               s.started_at, s.ended_at, s.duration_seconds,
+               s.scenario_snapshot #>> '{{scenario,title}}' AS scenario_title,
+               s.scenario_snapshot #>> '{{persona,name}}' AS client_name,
+               cl.name AS class_name,
+               COALESCE(ev.status, 'none') AS evaluation_status,
+               COUNT(*) OVER () AS total_count
+        FROM sessions s
+        LEFT JOIN classes cl ON cl.id = s.class_id AND cl.deleted_at IS NULL
+        {_LATEST_EVALUATION}
+        WHERE {" AND ".join(conditions)}
+        ORDER BY s.started_at DESC, s.id DESC
+        LIMIT ${len(args)}
+        """,
+        *args,
+    )
+    counts = await conn.fetchrow(
+        f"""
+        SELECT count(*) AS total_sessions,
+               count(*) FILTER (WHERE s.status = 'completed') AS completed_sessions,
+               count(*) FILTER (WHERE s.status = 'completed' AND ev.status IS NULL) AS awaiting_evaluation,
+               count(*) FILTER (WHERE s.status = 'completed' AND ev.status = 'failed') AS evaluation_failed,
+               COALESCE(sum(s.duration_seconds) FILTER (WHERE s.status = 'completed'), 0) AS total_duration_seconds
+        FROM sessions s
+        {_LATEST_EVALUATION}
+        WHERE s.student_id = $1 AND s.deleted_at IS NULL
+        """,
+        student_id,
+    )
+    items = []
+    for r in rows:
+        item = dict(r)
+        item.pop("total_count", None)
+        item["kind"] = "class" if item["class_id"] is not None else "independent"
+        item["scenario_title"] = item["scenario_title"] or ""
+        item["client_name"] = item["client_name"] or ""
+        items.append(item)
+    return {
+        "items": items,
+        "total": rows[0]["total_count"] if rows else 0,
+        **dict(counts),
+    }

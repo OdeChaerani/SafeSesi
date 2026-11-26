@@ -129,7 +129,9 @@ class TestSessions(BaseTestCase):
             "id": 101,
             "student_id": 10,
             "scenario_id": 1,
+            "class_id": None,
             "status": "completed",
+            "scenario_snapshot": self.snapshot,
         }
         mock_build_snap.return_value = self.snapshot
         mock_create_sess.return_value = {

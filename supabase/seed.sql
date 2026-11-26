@@ -20,6 +20,8 @@ DECLARE
     v_admin_id bigint;
     v_external_id bigint;
     v_class_id bigint;
+    v_kls_id bigint;
+    v_other_class_id bigint;
 BEGIN
     -- =================================================================
     -- 1. Pastikan user 'peneliti' tersedia sebagai pemilik skenario katalog awal
@@ -397,6 +399,71 @@ BEGIN
     -- Skenario Nadia ditugaskan ke kelas uji oleh dosen Peneliti SafeSesi
     INSERT INTO public.class_scenarios (class_id, scenario_id, assigned_by)
     VALUES (v_class_id, v_nadia_id, v_owner_id)
+    ON CONFLICT (class_id, scenario_id) DO NOTHING;
+
+    -- =================================================================
+    -- 7. DATA UJI LOKAL: skenario KHUSUS KELAS dan satu kelas lain tanpa mahasiswa uji
+    -- Skenario kelas = salinan skenario Rina (isi klinis tidak ditulis ulang, disalin lewat SELECT)
+    -- dengan visibility 'class': hanya terlihat oleh anggota kelas yang menerima penugasannya dan
+    -- tidak pernah muncul di katalog umum. Kelas lain dipakai untuk menguji akses ditolak.
+    -- =================================================================
+    SELECT id INTO v_kls_id FROM public.scenarios
+    WHERE title = 'SS-KLS-01 Rina Kusumawati (Kelas Uji, DEV)' AND deleted_at IS NULL;
+    IF v_kls_id IS NULL THEN
+        INSERT INTO public.scenarios (title, owner_id, visibility, review_status, change_target)
+        SELECT 'SS-KLS-01 Rina Kusumawati (Kelas Uji, DEV)', owner_id, 'class'::public.scenario_visibility,
+               review_status, change_target
+        FROM public.scenarios WHERE id = v_rina_id
+        RETURNING id INTO v_kls_id;
+
+        INSERT INTO public.scenario_personas (
+            scenario_id, name, age, gender, education, occupation, marital_status,
+            family_background, personality, communication_style, additional_background, avatar_file
+        )
+        SELECT v_kls_id, name, age, gender, education, occupation, marital_status,
+               family_background, personality, communication_style, additional_background, avatar_file
+        FROM public.scenario_personas WHERE scenario_id = v_rina_id;
+
+        INSERT INTO public.scenario_cases (
+            scenario_id, main_problem, history_impact, expectation_change_context, health_condition, initial_summary
+        )
+        SELECT v_kls_id, main_problem, history_impact, expectation_change_context, health_condition, initial_summary
+        FROM public.scenario_cases WHERE scenario_id = v_rina_id;
+
+        INSERT INTO public.scenario_initial_states (
+            scenario_id, emotion_type, emotion_cause, disclosure_level, disclosure_trigger,
+            reasons_to_change, reasons_to_maintain, ambivalence_lean, discord_present, discord_context, discord_response
+        )
+        SELECT v_kls_id, emotion_type, emotion_cause, disclosure_level, disclosure_trigger,
+               reasons_to_change, reasons_to_maintain, ambivalence_lean, discord_present, discord_context, discord_response
+        FROM public.scenario_initial_states WHERE scenario_id = v_rina_id;
+
+        INSERT INTO public.scenario_hidden_facts (scenario_id, code, short_title, fact, sort_order, min_disclosure_level)
+        SELECT v_kls_id, code, short_title, fact, sort_order, min_disclosure_level
+        FROM public.scenario_hidden_facts WHERE scenario_id = v_rina_id;
+    END IF;
+
+    INSERT INTO public.class_scenarios (class_id, scenario_id, assigned_by)
+    VALUES (v_class_id, v_kls_id, v_owner_id)
+    ON CONFLICT (class_id, scenario_id) DO NOTHING;
+
+    SELECT id INTO v_other_class_id FROM public.classes
+    WHERE name = 'Kelas Lain (DEV, tanpa mahasiswa uji)' AND academic_year = '2026/2027' AND deleted_at IS NULL;
+    IF v_other_class_id IS NULL THEN
+        INSERT INTO public.classes (name, academic_year)
+        VALUES ('Kelas Lain (DEV, tanpa mahasiswa uji)', '2026/2027')
+        RETURNING id INTO v_other_class_id;
+    END IF;
+
+    INSERT INTO public.class_members (class_id, user_id)
+    SELECT v_other_class_id, v_owner_id
+    WHERE NOT EXISTS (
+        SELECT 1 FROM public.class_members cm
+        WHERE cm.class_id = v_other_class_id AND cm.user_id = v_owner_id AND cm.deleted_at IS NULL
+    );
+
+    INSERT INTO public.class_scenarios (class_id, scenario_id, assigned_by)
+    VALUES (v_other_class_id, v_kls_id, v_owner_id)
     ON CONFLICT (class_id, scenario_id) DO NOTHING;
 
     RAISE NOTICE 'Seed skenario berhasil disiapkan secara idempotent.';

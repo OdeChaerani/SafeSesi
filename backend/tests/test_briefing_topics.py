@@ -76,9 +76,10 @@ class TestBriefingTopics(BaseTestCase):
         self.assertEqual(student_visible_topics(PARENT_NOTES), EXPECTED_STUDENT_TOPICS)
         self.assertEqual(student_visible_topics([]), [])
 
+    @patch("api.sessions.get_evaluation_by_session", new_callable=AsyncMock, return_value=None)
     @patch("api.sessions.get_latest_topic_notes")
     @patch("api.sessions.get_session_by_id")
-    def test_briefing_topics_student_only_non_empty(self, mock_get_sess, mock_notes):
+    def test_briefing_topics_student_only_non_empty(self, mock_get_sess, mock_notes, _evaluation):
         mock_get_sess.return_value = self.parent
         mock_notes.return_value = PARENT_NOTES
 
@@ -87,10 +88,12 @@ class TestBriefingTopics(BaseTestCase):
         self.assertEqual(res["topics"], EXPECTED_STUDENT_TOPICS)
         self._assert_no_hidden_titles(res)
         mock_notes.assert_called_once_with(self.conn, PARENT_ID)
+        self.assertEqual(res["evaluation_status"], "none")  # untuk tautan hasil evaluasi di briefing lanjutan
 
+    @patch("api.sessions.get_evaluation_by_session", new_callable=AsyncMock, return_value=None)
     @patch("api.sessions.get_latest_topic_notes")
     @patch("api.sessions.get_session_by_id")
-    def test_briefing_topics_lecturer_sees_all(self, mock_get_sess, mock_notes):
+    def test_briefing_topics_lecturer_sees_all(self, mock_get_sess, mock_notes, _evaluation):
         # Dosen hanya melihat sesi kelas yang dikelolanya; di sana ia melihat semua topik.
         mock_get_sess.return_value = {**self.parent, "class_id": 3}
         mock_notes.return_value = PARENT_NOTES

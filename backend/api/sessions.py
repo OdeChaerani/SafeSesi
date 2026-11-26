@@ -3,7 +3,8 @@ from __future__ import annotations
 import time
 from typing import Any
 import asyncpg
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Literal
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from api.deps import ensure_can_view_session, ensure_session_owner, get_current_user, get_db, is_reviewer, require_role
 from core.errors import LLMServiceError
@@ -13,7 +14,9 @@ from repositories.scenarios import (
     get_scenario_by_id,
     validate_class_access,
 )
-from repositories.sessions import create_session, end_session, get_session_by_id
+from repositories.classes import get_class
+from repositories.evaluations import get_evaluation_by_session
+from repositories.sessions import create_session, end_session, get_session_by_id, list_student_sessions
 from repositories.topics import (
     copy_topic_notes_from_parent,
     create_session_topics_from_snapshot,
@@ -22,6 +25,7 @@ from repositories.topics import (
 )
 from repositories.turns import get_session_turns
 from schemas.scenario import PublicScenarioInfo
+from schemas.student import SessionHistoryResponse, TranscriptResponse
 from schemas.session import (
     CreateSessionRequest,
     CreateTurnRequest,
@@ -78,6 +82,35 @@ def to_public_session(session: dict[str, Any]) -> dict[str, Any]:
     return public
 
 
+async def _load_source_session(
+    conn: asyncpg.Connection,
+    session_id: int,
+    user: dict[str, Any],
+    scenario_id: int,
+    *,
+    need_completed: bool,
+    label: str,
+) -> dict[str, Any]:
+    """Sesi sumber untuk melanjutkan/mengulang: harus ada, milik mahasiswa itu, skenario sama
+    (dan sudah selesai untuk melanjutkan)."""
+    session = await get_session_by_id(conn, session_id)
+    if not session:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sesi sebelumnya tidak ditemukan.")
+    if session["student_id"] != user["id"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"{label} harus milik Anda sendiri.")
+    if session["scenario_id"] != scenario_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Skenario pada sesi lanjutan harus identik dengan sesi sebelumnya.",
+        )
+    if need_completed and session["status"] != "completed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Sesi sebelumnya belum selesai. Akhiri sesi itu terlebih dahulu sebelum melanjutkannya.",
+        )
+    return session
+
+
 @router.post("", response_model=SessionResponse, status_code=status.HTTP_201_CREATED)
 async def create_new_session(
     payload: CreateSessionRequest,
@@ -94,51 +127,49 @@ async def create_new_session(
                 detail=f"Skenario dengan ID {payload.scenario_id} tidak ditemukan.",
             )
 
-        # 1a. Validasi Akses Latihan Mandiri vs Latihan Kelas
-        if payload.class_id is None:
-            # Latihan mandiri: skenario harus berkatalog umum
-            if scenario["visibility"] != "catalog":
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Latihan mandiri hanya diizinkan untuk skenario yang tersedia di katalog umum.",
-                )
-        else:
-            # Latihan kelas: periksa keanggotaan kelas dan penugasan skenario
-            has_access = await validate_class_access(
-                conn, payload.scenario_id, payload.class_id, user["id"]
-            )
-            if not has_access:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Anda tidak memiliki izin untuk mengakses skenario pada kelas ini.",
-                )
-
-        # 1b. Validasi Khusus Mode Continue
+        # 1a. Sesi sumber: induk (continue) atau sesi asal (repeat). class_id selalu mengikuti sesi
+        # sumber, bukan permintaan, supaya latihan kelas tidak berpindah jenis diam-diam.
+        source: dict[str, Any] | None = None
         if payload.mode == "continue":
             if not payload.parent_session_id:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="parent_session_id wajib disertakan untuk mode continue.",
                 )
-            parent_session = await get_session_by_id(conn, payload.parent_session_id)
-            if not parent_session:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Sesi sebelumnya (parent session) tidak ditemukan.",
-                )
-            if parent_session["student_id"] != user["id"]:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Sesi lanjutan harus melanjutkan sesi milik Anda sendiri.",
-                )
-            if parent_session["scenario_id"] != payload.scenario_id:
+            source = await _load_source_session(
+                conn, payload.parent_session_id, user, payload.scenario_id, need_completed=True, label="Sesi lanjutan"
+            )
+        elif payload.mode == "repeat" and payload.repeat_of_session_id:
+            source = await _load_source_session(
+                conn, payload.repeat_of_session_id, user, payload.scenario_id, need_completed=False, label="Sesi yang diulang"
+            )
+        if source is not None:
+            class_id = source["class_id"]
+            if payload.class_id is not None and payload.class_id != class_id:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Skenario pada sesi lanjutan harus identik dengan sesi sebelumnya.",
+                    detail="class_id harus sama dengan sesi sebelumnya.",
                 )
+        else:
+            class_id = payload.class_id
 
-        # 2. Ambil Snapshot Skenario yang Dibekukan
-        snapshot = await build_scenario_snapshot(conn, payload.scenario_id)
+        # 1b. Validasi akses: latihan mandiri hanya skenario katalog; latihan kelas hanya untuk anggota
+        # aktif kelas dengan skenario yang ditetapkan ke kelas itu (juga saat mengulang/melanjutkan).
+        if class_id is None:
+            if scenario["visibility"] != "catalog":
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Latihan mandiri hanya diizinkan untuk skenario yang tersedia di katalog umum.",
+                )
+        elif not await validate_class_access(conn, payload.scenario_id, class_id, user["id"]):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Anda tidak memiliki izin untuk mengakses skenario pada kelas ini.",
+            )
+
+        # 2. Snapshot skenario. Sesi lanjutan memakai snapshot sesi induk (versi skenario saat sesi
+        # pertama), jadi perubahan skenario oleh dosen hanya berlaku untuk sesi baru.
+        snapshot = source["scenario_snapshot"] if payload.mode == "continue" else await build_scenario_snapshot(conn, payload.scenario_id)
         if not snapshot:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -146,13 +177,13 @@ async def create_new_session(
             )
 
         # 3. Buat Rekaman Sesi Baru
-        parent_id = payload.parent_session_id if payload.mode == "continue" else None
+        parent_id = source["id"] if payload.mode == "continue" and source else None
         session_record = await create_session(
             conn=conn,
             student_id=user["id"],
             scenario_id=payload.scenario_id,
             scenario_snapshot=snapshot,
-            class_id=payload.class_id,
+            class_id=class_id,
             parent_session_id=parent_id,
         )
         new_session_id = session_record["id"]
@@ -180,6 +211,57 @@ async def create_new_session(
             await copy_topic_notes_from_parent(conn, payload.parent_session_id, new_session_id)
 
         return to_public_session(session_record)
+
+
+@router.get("", response_model=SessionHistoryResponse)
+async def list_my_sessions(
+    kind: Literal["all", "independent", "class"] = Query(default="all", alias="type", description="Jenis latihan"),
+    scenario_id: int | None = Query(default=None, description="Saring berdasarkan skenario"),
+    limit: int = Query(default=100, ge=1, le=100, description="Jumlah maksimum baris (tanpa paginasi)"),
+    user: dict[str, Any] = Depends(require_role("student")),
+    conn: asyncpg.Connection = Depends(get_db),
+) -> Any:
+    """Riwayat sesi milik mahasiswa yang sedang masuk, terbaru dulu, beserta hitungan untuk beranda."""
+    return await list_student_sessions(conn, user["id"], kind=kind, scenario_id=scenario_id, limit=limit)
+
+
+@router.get("/{session_id}/transcript", response_model=TranscriptResponse)
+async def get_session_transcript(
+    session_id: int,
+    user: dict[str, Any] = Depends(get_current_user),
+    conn: asyncpg.Connection = Depends(get_db),
+) -> Any:
+    """Transkrip sesi: pembicara dan isi tiap giliran saja. Client State dan data internal tidak dikirim.
+
+    Aturan akses sama dengan detail sesi: mahasiswa pemilik, atau dosen kelas yang mengelola sesi itu.
+    """
+    session = await get_session_by_id(conn, session_id)
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Sesi dengan ID {session_id} tidak ditemukan.",
+        )
+    await ensure_can_view_session(conn, session, user)
+
+    class_info = await get_class(conn, session["class_id"]) if session.get("class_id") else None
+    turns = await get_session_turns(conn, session_id)
+    return {
+        "session": {
+            "id": session["id"],
+            "status": session["status"],
+            "kind": "class" if session.get("class_id") else "independent",
+            "class_id": session.get("class_id"),
+            "class_name": class_info["name"] if class_info else None,
+            "parent_session_id": session.get("parent_session_id"),
+            "started_at": session["started_at"],
+            "ended_at": session.get("ended_at"),
+            "duration_seconds": session.get("duration_seconds"),
+            "scenario": PublicScenarioInfo.from_snapshot(
+                session.get("scenario_snapshot") or {}, scenario_id=session.get("scenario_id")
+            ),
+        },
+        "turns": [{"turn_no": t["turn_no"], "speaker": t["speaker"], "content": t["content"]} for t in turns],
+    }
 
 
 @router.get("/{session_id}")
@@ -235,9 +317,11 @@ async def get_briefing_topics(
 
     await ensure_can_view_session(conn, session, user)
 
+    evaluation = await get_evaluation_by_session(conn, session_id)
     return {
         "session_id": session_id,
         "topics": await topics_for_viewer(conn, session_id, user),
+        "evaluation_status": evaluation["status"] if evaluation else "none",
     }
 
 
